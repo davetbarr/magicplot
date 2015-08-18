@@ -36,17 +36,13 @@ class Widget(QtGui.QWidget):
 
 def main():
     app = QtGui.QApplication(sys.argv)
-
     test = Widget()
-
-
     data = numpy.random.random(100)
     twoDdata = numpy.random.random((100,100))
     threeDdata = numpy.random.random((100,100,100))
     x = numpy.arange(100)
     test.plot(x, data, twoDdata, threeDdata)
     test.show()
-
     sys.exit(app.exec_())
 
 if __name__ == '__main__':

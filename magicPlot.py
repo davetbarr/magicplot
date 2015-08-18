@@ -136,7 +136,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotMode = 1
         self.plotObj.setData(data)
 #        self.plotView.plotItem.plot(data)
-        self.plotView.autonge()
+        self.plotView.autoRange()
 
     def plot2d(self, data):
         self.plotMode=2
@@ -162,9 +162,19 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     #                 self.rects[-1].rect(), QtGui.QBrush(QtGui.QColor("red")))
 
 
+def generateData(data, data_len):
+    numpy.append(data, numpy.random.random(100))
+
+
 if __name__ == "__main__":
     app = QtGui.QApplication([])
 
     w = MagicPlot()
     w.show()
-    #sys.exit(app.exec_())
+    data = generateData(0,100)
+    for i in range(100):
+        w.plot(data)
+        data = generateData(data, 100)
+
+    print 'done'
+    sys.exit(app.exec_())

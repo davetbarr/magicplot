@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/apr/CfAI/magicPlot/magicPlot.ui'
+# Form implementation generated from reading ui file '/home/ojdf/Documents/MagicPlot/magicPlot.ui'
 #
-# Created by: PyQt4 UI code generator 4.11.4
+# Created: Tue Aug 18 11:03:57 2015
+#      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -35,6 +36,7 @@ class Ui_MagicPlot(object):
         self.verticalLayoutWidget_2 = QtGui.QWidget(self.drawSplitter)
         self.verticalLayoutWidget_2.setObjectName(_fromUtf8("verticalLayoutWidget_2"))
         self.plotContainerLayout = QtGui.QVBoxLayout(self.verticalLayoutWidget_2)
+        self.plotContainerLayout.setMargin(0)
         self.plotContainerLayout.setObjectName(_fromUtf8("plotContainerLayout"))
         self.plotLayout = QtGui.QHBoxLayout()
         self.plotLayout.setObjectName(_fromUtf8("plotLayout"))
