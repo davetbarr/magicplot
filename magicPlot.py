@@ -2,6 +2,7 @@ import sys
 import os
 SRC_PATH = os.path.dirname(os.path.abspath(__file__))
 os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
+os.system("pyuic4 {0}/popUp.ui > {0}/popUp_ui.py".format(SRC_PATH))
 import magicPlot_ui
 import shapeHolder
 import shapeDrawer
@@ -9,14 +10,13 @@ import shapeDrawer
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
+from astropy.io import fits
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def __init__(self):
         super(MagicPlot, self).__init__()
-
         self.setupUi(self)
-
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
 
@@ -29,11 +29,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # Plot test buttons
         self.plotRand1d.clicked.connect(self.plotRandom1d)
         self.plotRand2d.clicked.connect(self.plotRandom2d)
+        self.bufferSizeSlider.valueChanged.connect(self.getBufferSize)
+        self.plot1dRealtime.clicked.connect(self.bufferPlotTest)
+        self.plotSelected.clicked.connect(self.plotSelectedShape)
+        self.openFitsFile.clicked.connect(self.openFits)
 
         # Set initial splitter sizes
-        self.drawSplitter.setSizes([1,0])
-
-
+        self.drawSplitter.setSizes([200,1])
 
  # Methods to setup plot areaD
  ##################################
@@ -136,7 +138,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotMode = 1
         self.plotObj.setData(data)
 #        self.plotView.plotItem.plot(data)
-        self.plotView.autoRange()
+        #self.plotView.autoRange()
 
     def plot2d(self, data):
         self.plotMode=2
@@ -147,6 +149,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def plotRandom2d(self):
         data = numpy.random.random((100,100))
         self.plot(data)
+        self.data = data
 
     def plotRandom1d(self):
         data = numpy.random.random(100)
@@ -161,20 +164,47 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     #         self.painter.fillRect(
     #                 self.rects[-1].rect(), QtGui.QBrush(QtGui.QColor("red")))
 
+#################################
+    def getBufferSize(self):
+        return self.bufferSizeSlider.value()
 
-def generateData(data, data_len):
-    numpy.append(data, numpy.random.random(100))
+    def plotBuffer(self, data):
+        buffersize = self.getBufferSize()
+        self.ViewBox = self.plotItem.getViewBox()
+        self.ViewBox.disableAutoRange()
+        self.ViewBox.setRange(xRange=[len(data)-buffersize,len(data)])
+        self.plot(data)
 
+    def bufferPlotTest(self):
+        data = numpy.array(numpy.random.random(10))
+        for i in range(1000):
+            data = numpy.append(data, numpy.random.random())
+            self.plotBuffer(data)
+            pyqtgraph.QtGui.QApplication.processEvents()
+
+            #only keeps buffer, not all data
+            if len(data) > self.getBufferSize():
+                data = data[-self.getBufferSize():]
+
+    def plotSelectedShape(self):
+        #nb only takes first item from list at the moment, only works w/ rects
+        data = self.data
+        rect = self.shapeDrawer.getShapes().__getitem__(0).boundingRect()
+        cropped_data = data[int(rect.top()):int(rect.bottom()),int(rect.left()):int(rect.right())]
+        newplot = pyqtgraph.ImageView()
+        self.drawSplitter.addWidget(newplot)
+        newplot.setImage(cropped_data)
+
+    def openFits(self):
+        fname = unicode(QtGui.QFileDialog.getOpenFileName(self).toUtf8(), encoding="utf-8")
+        self.processFits(fits.open(fname)[0].data)
+
+    def processFits(self, data):
+        print data.shape
 
 if __name__ == "__main__":
     app = QtGui.QApplication([])
-
     w = MagicPlot()
     w.show()
-    data = generateData(0,100)
-    for i in range(100):
-        w.plot(data)
-        data = generateData(data, 100)
-
     print 'done'
     sys.exit(app.exec_())

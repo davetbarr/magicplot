@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file '/home/ojdf/Documents/MagicPlot/shapeDrawer.ui'
 #
-# Created: Tue Aug 18 11:03:57 2015
+# Created: Wed Aug 19 14:54:33 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!

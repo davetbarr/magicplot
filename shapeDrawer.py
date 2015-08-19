@@ -37,6 +37,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
         self.setView(view, item)
 
+    def getShapes(self):
+        return self.shapes
 
     def setView(self, view, item):
         self.plotView = view
@@ -113,7 +115,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     QtCore.QRectF(imgPos.x(),imgPos.y(),0,0)))
             self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.red))
             self.shapes[-1].setZValue(100)
-            self.shapes[-1].setBrush(QtGui.QBrush(QtCore.Qt.red))
+            #self.shapes[-1].setBrush(QtGui.QBrush(QtCore.Qt.red))
 
             self.plotView.addItem(self.shapes[-1])
             #self.rectStartPos = (pos.x(), pos.y())
@@ -155,6 +157,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     def updateLine(self, x1, x2, y1, y2):
         self.shapes[-1].setLine(QtCore.QLineF(x1, x2, y1, y2))
+        self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.red))
+        self.plotView.addItem(self.shapes[-1])
 
     def mouseMoved_line(self, pos):
         '''
@@ -191,7 +195,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.shapes.append(
                     QtGui.QGraphicsLineItem(QtCore.QLineF(
                             imgPos.x(),imgPos.y(),0,0)))
-            imgPos = self.plotItem.mapFromScene(pos)
+
+            #self.shapes[-1].setZValue(100)
+
+            #imgPos = self.plotItem.mapFromScene(pos)
 
             self.updateLine(imgPos.x(), imgPos.y(), 0,0)
             self.scene.sigMouseMoved.connect(
