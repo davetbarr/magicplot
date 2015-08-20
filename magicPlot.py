@@ -2,7 +2,6 @@ import sys
 import os
 SRC_PATH = os.path.dirname(os.path.abspath(__file__))
 os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
-os.system("pyuic4 {0}/popUp.ui > {0}/popUp_ui.py".format(SRC_PATH))
 import magicPlot_ui
 import shapeHolder
 import shapeDrawer
@@ -11,6 +10,7 @@ from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
 from astropy.io import fits
+import getData
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
@@ -190,7 +190,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         #nb only takes first item from list at the moment, only works w/ rects
         data = self.data
         rect = self.shapeDrawer.getShapes().__getitem__(0).boundingRect()
-        cropped_data = data[int(rect.top()):int(rect.bottom()),int(rect.left()):int(rect.right())]
+        cropped_data = data[int(rect.left()):int(rect.right()),int(rect.top()):int(rect.bottom())]
         newplot = pyqtgraph.ImageView()
         self.drawSplitter.addWidget(newplot)
         newplot.setImage(cropped_data)
@@ -201,10 +201,23 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def processFits(self, data):
         print data.shape
+	
+    def plotRawPixels(self):
+	raw = getData.getData("dragonrtcPxlBuf", 1) 
+	data = getData.processRawPixelData(raw)
+        self.plot(data)
+        self.data = data
+
+    def plotCalPixels(self):
+	raw = getData.getData("dragonrtcCalPxlBuf", 1) 
+	data = getData.processRawPixelData(raw)
+        self.plot(data)
+        self.data = data
 
 if __name__ == "__main__":
     app = QtGui.QApplication([])
     w = MagicPlot()
     w.show()
+    w.plotCalPixels()
     print 'done'
     sys.exit(app.exec_())

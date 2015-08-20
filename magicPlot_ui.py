@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/ojdf/Documents/MagicPlot/magicPlot.ui'
+# Form implementation generated from reading ui file '/home/dragon/magicplotGUI/MagicPlot/magicPlot.ui'
 #
-# Created: Wed Aug 19 14:54:33 2015
+# Created: Thu Aug 20 10:05:55 2015
 #      by: PyQt4 UI code generator 4.10.4
 #
 # WARNING! All changes made in this file will be lost!
