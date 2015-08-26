@@ -29,13 +29,14 @@ class ShapeContainer(QtCore.QAbstractListModel):
 
     def removeShape(self, index):
         self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
-
         shape = self.shapeList.pop(index.row())
         shape.setVisible(False)
         self.endRemoveRows()
 
     def clearShapes(self):
         self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
+        for i in self.shapeList:
+            i.setVisible(False)
         self.shapeList = []
         self.endRemoveRows()
 

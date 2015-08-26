@@ -18,11 +18,16 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     Parameters:
         view (QGraphicsView): The Graphics View to draw onto
     """
+    #Signal for change shape (there must be a better way!)
+    changeShapeSignal = QtCore.pyqtSignal()
+
 
     def __init__(self, view=None, item=None):
         # Run init on th e QWidget class
         super(ShapeDrawer, self).__init__()
         self.setupUi(self)
+
+
 
         # Drawing buttons
         self.drawRectButton.clicked.connect(self.drawRect)
@@ -31,11 +36,17 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         # Setup list to hold shapes
         self.shapes = shapeHolder.ShapeContainer()
         self.shapeList.setModel(self.shapes)
+        self.index = 0
+        self.isDrawingRect = 0
+        self.isDrawingLine = 0
 
         # Connect double click to delete shape
         self.shapeList.doubleClicked.connect(self.shapes.removeShape)
+        self.shapeList.clicked.connect(self.changeIndex)
+
 
         self.setView(view, item)
+
 
     def getShapes(self):
         return self.shapes
@@ -49,11 +60,17 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         if view!=None:
             try:
                 self.scene = self.plotView.scene()
+                self.scene.sigMouseClicked.connect(self.shapeCheck)
             except TypeError:
                 self.scene = self.plotView.scene
+                self.scene.sigMouseClicked.connect(self.shapeCheck)
 
     def clearShapes(self):
         self.shapes.clearShapes()
+
+    def changeIndex(self, index):
+        self.index = index.row()
+        self.changeShapeSignal.emit()
 
 # Rectangle drawing methods
 #############################
@@ -106,6 +123,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         print(pos)
         scene = self.scene
         imgPos = self.plotItem.mapFromScene(pos)
+        self.isDrawingRect =1
         if      (pos.y() > 0 and pos.x() > 0
                 and pos.y() < scene.height
                 and pos.x() < scene.width):
@@ -145,6 +163,12 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_rect2)
 
             self.shapes.updateView()
+        self.isDrawingRect = 0
+
+    def drawRectFromRect(self, rect):
+        self.shapes.append(QtGui.QGraphicsRectItem(rect))
+        self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.blue))
+        self.plotView.addItem(self.shapes[-1])
 
 # Line drawing methods
 #############################
@@ -186,6 +210,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         print("Line Mouse clicked 1!")
         pos = event.pos()
         imgPos = self.plotItem.mapFromScene(pos)
+        self.isDrawingLine = 1
         if      (pos.y() > 0 and pos.x() > 0
                 and pos.y() < self.scene.height
                 and pos.x() < self.scene.width):
@@ -221,6 +246,26 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_line2)
 
             self.shapes.updateView()
+        self.isDrawingLine = 0
+
+    def shapeCheck(self, event):
+        pos = event.pos()
+        imgPos = self.plotItem.mapFromScene(pos)
+        index = 0
+        if self.isDrawingRect or self.isDrawingLine:
+            print "drawing, not registered click"
+            return None
+        for i in self.shapes:
+            if i.contains(imgPos):
+                print index
+                self.index = index
+                self.changeShapeSignal.emit()
+                #this is really bad, must be better way
+                break
+            else:
+                index += 1
+
+
 
 class LineDialog(QtGui.QDialog):
     def __init__(self):
