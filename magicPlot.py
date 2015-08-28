@@ -2,7 +2,9 @@ import sys
 import os
 SRC_PATH = os.path.dirname(os.path.abspath(__file__))
 os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
+os.system("pyuic4 {0}/subscribeWindow.ui > {0}/subscribeWindow_ui.py".format(SRC_PATH))
 import magicPlot_ui
+import subscribeWindow_ui
 import shapeHolder
 import shapeDrawer
 
@@ -11,6 +13,7 @@ import pyqtgraph
 import numpy
 from astropy.io import fits
 import getData
+from dragon.rtc import DataSubscriber
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
@@ -22,6 +25,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.setupUi(self)
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
+
+
 
         # Guess that 2-d plot will be common
         self._plotMode = 2
@@ -45,25 +50,214 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.bufferSizeSlider.valueChanged.connect(self.getBufferSize)
         self.plot1dRealtime.clicked.connect(self.bufferPlotTest)
         self.plotSelected.clicked.connect(self.plotSelectedShape)
-        self.openFitsFile.clicked.connect(self.openFits)
+        self.saveFitsFile.clicked.connect(self.saveFits)
         self.getLiveData.toggled.connect(self.liveButtonToggle)
         self.maxSlider.valueChanged.connect(self.levels)
         self.minSlider.valueChanged.connect(self.levels)
         self.subApDraw.toggled.connect(self.subApsToggle)
-        self.drawCentroids.toggled.connect(self.drawCentroidsToggle)
+        #self.drawCentroids.toggled.connect(self.drawCentroidsToggle)
         self.drawArr.toggled.connect(self.drawArrowsToggle)
         self.drawRefCents.toggled.connect(self.refCentsToggle)
+        self.but1dSlopes.clicked.connect(self.plot1dSlopes)
 
 
         self.isStreamingData = False
-        self.isDrawingCents = False
-        self.isDrawingSubAps = False
+        self.isPlottingPixels = False
+        self.isPlottingCents = False
+        self.isPlottingSubaps = False
+        self.isPlottingCalPixels = False
         self.isDrawingArrows = False
         self.isStreamingCents = False
         self.isDrawingRefCents = False
 
+
         # Set initial splitter sizes
         self.drawSplitter.setSizes([200,1])
+
+        #Subscribe window
+        self.subSelect = SubscribeWindow()
+
+        self.subSelect.checkPixels.toggled.connect(self.checkPixelsHandler)
+        self.subSelect.checkCalPixels.toggled.connect(self.checkCalPixelsHandler)
+        self.subSelect.checkCents.toggled.connect(self.checkCentsHandler)
+        self.subSelect.checkSubaps.toggled.connect(self.checkSubapsHandler)
+        self.subSelect.checkPlotPixels.toggled.connect(self.checkPlotPixelsHandler)
+        self.subSelect.checkPlotCalPixels.toggled.connect(self.checkPlotCalPixelsHandler)
+        self.subSelect.checkPlotCents.toggled.connect(self.checkPlotCentsHandler)
+        self.subSelect.checkPlotSubaps.toggled.connect(self.checkPlotSubapsHandler)
+
+        self.subSelect.show()
+
+        # Threads from dragonAPI (from gui_TAS.py)
+        self.pixelThread = UpdateThread('pixels', 10)
+        self.pixelThread.updateSignal.connect(self.updatePixels)
+        self.pixelThread.subscribeFailedSig.connect(self.subscribeFailed)
+        self.calPixelThread = UpdateThread('calPixels', 10)
+        self.calPixelThread.updateSignal.connect(self.updateCalPixels)
+        self.calPixelThread.subscribeFailedSig.connect(self.subscribeFailed)
+        self.centThread = UpdateThread('cents', 10)
+        self.centThread.updateSignal.connect(self.updateCents)
+        self.centThread.subscribeFailedSig.connect(self.subscribeFailed)
+        self.subapsThread = UpdateThread('subaps', 10)
+        self.subapsThread.updateSignal.connect(self.updateSubaps)
+        self.subapsThread.subscribeFailedSig.connect(self.subscribeFailed)
+
+    def subscribeFailed(self):
+        print "subscribe failed"
+
+    def checkPixelsHandler(self, checked):
+        if checked:
+            print "pixel subscription started"
+            self.pixelThread.start() #starts entire thread run()
+        else:
+            print "pixel subscription stopped"
+            self.pixelThread.stopSubscription() #only stops sub, not entire thread
+
+    def checkCalPixelsHandler(self, checked):
+        if checked:
+            print "cal pixel subscription started"
+            self.calPixelThread.start()
+        else:
+            print "cal pixel subscription stopped"
+            self.calPixelThread.stopSubscription()
+
+    def checkCentsHandler(self, checked):
+        if checked:
+            print "cents subscription started"
+            self.centThread.start()
+        else:
+            print "cents subscription stopped"
+            self.centThread.stopSubscription()
+
+    def checkSubapsHandler(self, checked):
+        if checked:
+            print "subaps subscription started"
+            # I've put the subaps stream in darcWrapper and in DARC_STREAMS
+            # in dragonAPI.py, so this works
+            # Haven't done anything to dummyDarc though
+            self.subapsThread.start()
+
+        else:
+            print "subaps subscription stopped"
+            self.subapsThread.stopSubscription()
+
+    def checkPlotPixelsHandler(self, checked):
+        self.isPlottingPixels = checked
+
+    def checkPlotCalPixelsHandler(self, checked):
+        self.isPlottingCalPixels = checked
+
+    def checkPlotCentsHandler(self, checked):
+        self.isPlottingCents = checked
+
+    def checkPlotSubapsHandler(self, checked):
+        self.isPlottingSubaps = checked
+
+    def updatePixels(self, data):
+        # Find new way of processing raw pixels?
+        # Fix flickering when both Cal and Raw pixels streaming
+        self.data = getData.squareRawPixelData(data[2][0])
+        if self.isPlottingPixels and not self.isPlottingCalPixels:
+            self.plotPixels(self.data)
+        else:
+            try:
+                self.plotItem.clear()
+            except AttributeError:
+                pass
+
+    def updateCalPixels(self, data):
+        # Find new way of processing raw pixels?
+        self.data = getData.squareRawPixelData(data[2][0])
+        if self.isPlottingCalPixels and not self.isPlottingPixels:
+            self.plotCalPixels(self.data)
+        else:
+            try:
+                self.plotItem.clear()
+            except AttributeError:
+                pass
+
+    def updateCents(self, data):
+        self.cents = data[2][0]
+        centlist = []
+        centrePoints = []
+        index = numpy.arange(len(self.cents), step=2)
+        for i in index:
+            centlist.append(QtCore.QPointF(self.cents[i],self.cents[i+1]))
+        for j in self.subapRects:
+            centrePoints.append(j.center())
+        self.centCoOrds = numpy.array(centlist)+numpy.array(centrePoints)
+        if self.isPlottingCents:
+            # Work out a way of plotting 1d and 2d, like this (but better):
+            if self.plotMode == 1:
+                self.plot(self.cents)
+                return None
+            else:
+                self.plotCents(self.centCoOrds)
+        else:
+            try:
+                self.centPlot.clear()
+            except AttributeError:
+                pass
+
+    def updateSubaps(self, data):
+        self.subaps = data[2][0].reshape((49,6))  # need to find way of reshaping
+        self.subapRects = []                      # maybe get subapLocation
+        subapFlag = getData.getSubapFlag()
+        for i, flag in enumerate(subapFlag):
+            if flag == 0:
+                continue
+            else:
+                self.subapRects.append(getData.rectFromSubap(self.subaps[i,:]))
+        if self.isPlottingSubaps:
+            self.plotSubaps(self.subapRects)
+        else: #clear the subaps if they are drawn
+            try:
+                self.subapPlot.clear()
+            except AttributeError:
+                pass
+
+    def plotPixels(self, data):
+        self.plotMode = 2
+        self.plotItem.setImage(data)
+
+    def plotCalPixels(self, data):
+        self.plotMode = 2
+        self.plotItem.setImage(data)
+
+    def plotCents(self, data):
+        self.plotMode = 2
+        try:
+            self.centPlot.clear()
+        except AttributeError:
+            self.centPlot = pyqtgraph.ScatterPlotItem()
+            self.centPlot.setPen(QtGui.QPen(QtCore.Qt.green))
+            self.centPlot.setBrush(QtGui.QColor("lime"))
+            self.plotView.addItem(self.centPlot)
+        xs = []
+        ys = []
+        for i in data:
+            xs.append(i.x())
+            ys.append(i.y())
+        self.centPlot.setData(xs, ys, size=3, pxMode=False, symbol='+')
+
+    def plotSubaps(self, data):
+        self.plotMode = 2
+        try:
+            self.subapPlot.clear()
+        except AttributeError:
+            self.subapPlot = pyqtgraph.ScatterPlotItem()
+            self.subapPlot.setPen(QtGui.QPen(QtCore.Qt.blue))
+            self.subapPlot.setBrush(None)
+            self.plotView.addItem(self.subapPlot)
+        sizes = []
+        xs, ys = [], []
+        for i in data:
+            sizes.append(i.height())
+            xs.append(i.center().x())
+            ys.append(i.center().y())
+        self.subapPlot.setData(xs, ys, size=sizes, pxMode=False, symbol='s')
+
+
 
  # Methods to setup plot areaD
  ##################################
@@ -234,52 +428,61 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def processFits(self, data):
         print data.shape
 
+    def saveFits(self):
+        data = self.data
+        fileDialog = QtGui.QFileDialog()
+        fileDialog.setDefaultSuffix("fits")
+        fileDialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+        if fileDialog.exec_() == QtGui.QFileDialog.Accepted:
+            fname = unicode(fileDialog.selectedFiles()[0].toUtf8(), encoding="utf-8")
+        try:
+            hdu = fits.PrimaryHDU(data)
+            hdu.writeto(fname)
+            print "current frame written to %s" %fname
+        except AttributeError:
+            print "no data to save"
+        except IOError:
+            f = fits.open(fname, mode='update')
+            f[0].data = data
+            f.flush()
+            f.close()
+            print "current frame overwritten to %s" %fname
+
     def updateData(self, raw):
         # print self.data
         # print type(self.data)
         if self.isStreamingData:
             self.data = getData.squareRawPixelData(raw[2][0])
-            self.plotItem.setImage(self.data)
-            self.levels()
-
-            #update data in other window
-            try:
-                self.popout
-            except AttributeError:
-                pass
-            else:
-                if self.popout.isVisible() and self.popout.plotMode == 1:
-                    cropped_data = self.lineROI.getArrayRegion(self.data, self.plotItem)
-                    self.popout.plotObj.setData(cropped_data)
-                    pyqtgraph.QtGui.QApplication.processEvents()
-                elif self.popout.isVisible() and self.popout.plotMode == 2:
-                    cropped_data = self.rectROI.getArrayRegion(self.data, self.plotItem)
-                    self.popout.plotItem.setImage(cropped_data)
-                else:
+            if self.isPlottingPixels:
+                self.plotItem.setImage(self.data)
+                self.levels()
+                #update data in other window
+                try:
+                    self.popout
+                except AttributeError:
                     pass
-
-
-
+                else:
+                    if self.popout.isVisible() and self.popout.plotMode == 1:
+                        cropped_data = self.lineROI.getArrayRegion(self.data, self.plotItem)
+                        self.popout.plotObj.setData(cropped_data)
+                        pyqtgraph.QtGui.QApplication.processEvents()
+                    elif self.popout.isVisible() and self.popout.plotMode == 2:
+                        cropped_data = self.rectROI.getArrayRegion(self.data, self.plotItem)
+                        self.popout.plotItem.setImage(cropped_data)
+                    else:
+                        pass
             return 0
         else:
             return 1
 
-    def plotRawPixels(self):
-        raw = getData.getData("rtcPxlBuf", 1)["rtcPxlBuf"][0][0]
-        data = getData.squareRawPixelData(raw)
-        self.plot(data)
-        self.data = data
-
-    def plotCalPixels(self):
-        raw = getData.getData("rtcCalPxlBuf", 1)["rtcCalPxlBuf"][0][0]
-        data = getData.squareRawPixelData(raw)
-        self.plot(data)
-        self.data = data
+    def plotPixelDataToggle(self, checked):
+        if checked:
+            self.isPlottingPixels = True
+        else:
+            self.isPlottingPixels = False
 
     def startStream(self):
-        #needs to plot something to initialise
         self.isStreamingData = True
-        self.plot(numpy.zeros((2,2)))
         getData.getData("rtcCalPxlBuf", -1, self.updateData, 10)
 
     def endStream(self):
@@ -293,7 +496,11 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def subApsToggle(self, checked):
         if checked:
-            self.drawSubAps()
+            try:
+                self.drawSubAps()
+            except AttributeError:
+                self.plotMode = 2
+                self.drawSubAps()
         else:
             self.shapeDrawer.shapes.clearShapes()
 
@@ -302,61 +509,56 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         for i in self.subAps:
             self.shapeDrawer.drawRectFromRect(i)
 
-    def drawCentroidsToggle(self, checked):
-        if checked:
-            self.isDrawingCents = True
-            self.drawCents()
-        else:
-            self.isDrawingCents = False
-            self.plotView.removeItem(self.centPlot)
+    # def drawCentroidsToggle(self, checked):
+    #     if checked:
+    #         if not self.isStreamingCents:
+    #             self.getCents()
+    #         self.isDrawingCents = True
+    #         try:
+    #             self.drawCents()
+    #         except AttributeError:
+    #             self.plotMode = 2
+    #             self.drawCents()
+    #     else:
+    #         self.isDrawingCents = False
+    #         self.plotView.removeItem(self.centPlot)
+    #
+    # def drawCents(self):
+    #     self.centPlot = pyqtgraph.ScatterPlotItem(symbol='+')
+    #     self.centPlot.setPen(QtGui.QPen(QtCore.Qt.green))
+    #     self.centPlot.setBrush(QtGui.QBrush(QtGui.QColor("lime")))
+    #     self.plotView.addItem(self.centPlot)
+    #     if not self.isStreamingCents:
+    #         self.getCents()
+    #
+    # def getCents(self):
+    #     self.isStreamingCents = True
+    #     getData.getData("rtcCentBuf", -1, self.updateCents, 10)
 
-    def drawCents(self):
-        self.centPlot = pyqtgraph.ScatterPlotItem(symbol='+')
-        self.centPlot.setPen(QtGui.QPen(QtCore.Qt.green))
-        self.centPlot.setBrush(QtGui.QBrush(QtGui.QColor("lime")))
-        self.plotView.addItem(self.centPlot)
-        if not self.isStreamingCents:
-            self.getCents()
-
-    def getCents(self):
-        self.isStreamingCents = True
-        getData.getData("rtcCentBuf", -1, self.updateCents, 10)
-
-    def updateCents(self, raw):
-        self.cents = raw[2][0]
-        self.centlist = []
-        self.centrePoints = []
-        index = numpy.arange(len(self.cents), step=2)
-        for i in index:
-            self.centlist.append(QtCore.QPointF(self.cents[i],self.cents[i+1]))
-        for j in self.subAps:
-            self.centrePoints.append(j.center())
-        self.plotCents = numpy.array(self.centlist)+numpy.array(self.centrePoints)
-        # if self.isDrawingArrows:
-        #     self.updateArrows()
-        # if self.isDrawingCents:
-        #     xs = []
-        #     ys = []
-        #     for i in self.plotCents:
-        #         xs.append(i.x())
-        #         ys.append(i.y())
-        #     self.updateCentSignal.emit(xs, ys)
-        # else:
-        #     return 1
-
-        if not self.isDrawingArrows and not self.isDrawingCents:
-            pass
-            #need to implement something to kill the stream (return 1)
-        if self.isDrawingArrows:
-            self.updateArrows()
-        if self.isDrawingCents:
-            xs = []
-            ys = []
-            for i in self.plotCents:
-                xs.append(i.x())
-                ys.append(i.y())
-            self.updateCentSignal.emit(xs, ys)
-        return 0
+    # def updateCents(self, raw):
+    #     self.cents = raw[2][0]
+    #     self.centlist = []
+    #     self.centrePoints = []
+    #     index = numpy.arange(len(self.cents), step=2)
+    #     for i in index:
+    #         self.centlist.append(QtCore.QPointF(self.cents[i],self.cents[i+1]))
+    #     for j in self.subAps:
+    #         self.centrePoints.append(j.center())
+    #     self.plotCents = numpy.array(self.centlist)+numpy.array(self.centrePoints)
+    #
+    #     if not self.isDrawingArrows and not self.isDrawingCents:
+    #         pass
+    #         #need to implement something to kill the stream (return 1)
+    #     if self.isDrawingArrows:
+    #         self.updateArrows()
+    #     if self.isDrawingCents:
+    #         xs = []
+    #         ys = []
+    #         for i in self.plotCents:
+    #             xs.append(i.x())
+    #             ys.append(i.y())
+    #         self.updateCentSignal.emit(xs, ys)
+    #     return 0
 
     # def generateImage(self):
     #     fShape = []
@@ -398,8 +600,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     #     hdu = fits.PrimaryHDU(output)
     #     hdu.writeto('test.fits')
 
-    def plotCents(self, xs, ys):
-        self.centPlot.setData(xs, ys, pxMode=False, size=2)
+    # def plotCents(self, data):
+    #     print "plotCents"
+    #     #self.centPlot.setData(xs, ys, pxMode=False, size=2)
 
     def refCentsToggle(self, checked):
         if checked:
@@ -447,7 +650,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         if not self.isStreamingCents:
             self.getCents()
 
-    def updateArrows(self, multiplier=1):
+    def updateArrows(self, multiplier=5):
         xs = []
         ys = []
         lengths = []
@@ -514,13 +717,91 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         lut = colorMap.getLookupTable(0.0, 1.0, 256)
         self.plotItem.setLookupTable(lut)
 
+    def plot1dSlopes(self):
+        slopes = self.cents
+        self.plot(slopes)
+
+class UpdateThread(QtCore.QThread):
+    """
+    This thread subscribes to RTC. RTC creates another thread which every
+    30 frames emits a signal (updateSignal) to update the camera image in the
+    GUI. If subscription to RTC fails, this thread emits a signal
+    "subscribeFailedSig" to notify the GUI of the problem.
+    """
+    # Create signals:
+    # (a) for updating the plot when new data arrives:
+    updateSignal       = QtCore.pyqtSignal( object )
+    # (b) for notifying the gui that rtc is not running:
+    subscribeFailedSig = QtCore.pyqtSignal()
+
+    def __init__(self, streamNamestr, decimation):
+        super(UpdateThread, self).__init__()
+        self.streamNamestr = streamNamestr
+        self.decimation = decimation
+    # This function is called when you say "updateThread.start()":
+    def run(self):
+        # Subscribe to RTC and ask RTC to display the camera with the arms:
+        try:
+            self.subscription = DataSubscriber( \
+                streamName = self.streamNamestr,              # stream name (as in dragon)
+                rtcName    = '',             # darc --prefix
+                dummyMode  = False,          # dummy input or real input
+                callback   = self.emitUpdateSignal )# callback, i.e. function to
+                                          # execute every time new data is ready
+        # If subscribing failed,
+        except Exception as e:
+            # ... notify the main thread:
+            self.subscription = None
+            self.subscribeFailedSig.emit()
+            print e
+        else:
+            # Activate the subscription, asking for data of every 30-th frame:
+            try:
+                self.subscription.start( self.decimation )
+            # If it doesn't work:
+            except Exception as e:
+                # Emit signal that subscription failed:
+                self.subscription = None
+                self.subscribeFailedSig.emit()
+                print e
+
+    # This function is called by the RTC everytime new data is ready:
+    def emitUpdateSignal(self, data ):
+        """
+        Emit the signal saying that new data is ready, and pass the data to the
+        slot that is connected to this signal.
+
+        Args:
+            data : ["data", streamname, (data, frame time, frame number)]
+                   this is the structure of a data package coming from darc
+
+        Returns:
+            nothing
+        """
+        # raise Exception # For testing the effect of a broken callback.
+        self.updateSignal.emit( data )
+
+    def stopSubscription(self):
+        """
+        Stop the subscription to the stream for this thread. Doesn't stop the
+        updateThread, just the subscription
+        """
+        self.subscription.stop()
+
+
+class SubscribeWindow(QtGui.QWidget, subscribeWindow_ui.Ui_subscribeWindow):
+
+    def __init__(self, parent=None):
+        super(SubscribeWindow, self).__init__(parent)
+        self.setupUi(self)
+
+
+
+
 if __name__ == "__main__":
     app = QtGui.QApplication([])
     w = MagicPlot()
     w.show()
-    # w.startStream()
-    # w.drawSubAps()
-    # w.drawCents()
 
     print 'done'
     sys.exit(app.exec_())

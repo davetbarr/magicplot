@@ -166,9 +166,9 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.isDrawingRect = 0
 
     def drawRectFromRect(self, rect):
-        self.shapes.append(QtGui.QGraphicsRectItem(rect))
-        self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.blue))
-        self.plotView.addItem(self.shapes[-1])
+        #self.shapes.append(QtGui.QGraphicsRectItem(rect))
+        #self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.blue))
+        self.plotView.addItem(rect)
 
 # Line drawing methods
 #############################
