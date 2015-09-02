@@ -21,8 +21,11 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.drawSplitter.addWidget(self.shapeDrawer)
 
         # Guess that 2-d plot will be common
+        # Need to initialise using plotMode = 2 or will not add PlotWidget
+        # to layout
         self._plotMode = 2
         self.set2dPlot()
+        self.plotMode = 2
 
         # Initialise ROIs
         self.rectROI = pyqtgraph.RectROI((0,0),(0,0))
@@ -42,6 +45,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotView = pyqtgraph.PlotWidget()
         self.plotObj = self.plotView.plotItem.plot()
         self.plotItem = self.plotView.plotItem
+        self.viewBox = self.plotView.getViewBox()
+
 
     def set2dPlot(self):
         print("Set 2d Plot")
@@ -49,6 +54,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotView = pyqtgraph.PlotWidget()
         self.plotItem = pyqtgraph.ImageItem()
         self.plotView.addItem(self.plotItem)
+        self.viewBox = self.plotView.getViewBox()
 
     @property
     def plotMode(self):
@@ -85,26 +91,25 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         If the mouse is in the image, print both the mouse position and
         pixel value to the gui
         '''
-
-        imgPos = self.plotItem.mapFromScene(pos)
-        self.mousePos = (imgPos.x(), imgPos.y())
+        imgPos = pos
+        self.mousePos = self.viewBox.mapSceneToView(imgPos)
         value = None
 
         # Try to index, if not then out of bounds. Don't worry about that.
         try:
             if self.plotMode == 1:
-                value = self.data[self.mousePos[0]]
+                value = self.data[self.mousePos.x()]
             if self.plotMode == 2:
                 # Only do stuff if position above 0.
-                if min(self.mousePos)>0:
-                    value = self.data[self.mousePos[0],self.mousePos[1]]
+                if min(self.mousePos.x(), self.mousePos.y())>0:
+                    value = self.data[self.mousePos.x(),self.mousePos.y()]
 
         except IndexError:
             pass
 
         if value!=None:
             self.mousePosLabel.setText ("(%.1f,%.1f) : %.2f"%
-                        (self.mousePos[0], self.mousePos[1], value) )
+                        (self.mousePos.x(), self.mousePos.y(), value) )
 
 
     # Plotting methods
@@ -121,11 +126,14 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         print("plot!")
         # If data is to plotted in 1-d
         if dims==1 or data.ndim==1:
-            self.plotMode = 1
+            # Only change plotMode if not already in correct plotMode
+            if self.plotMode != 1:
+                self.plotMode = 1
             self.plot1d(data)
 
         elif dims==2 or data.ndim==2:
-            self.plotMode = 2
+            if self.plotMode != 2:
+                self.plotMode = 2
             self.plot2d(data)
 
         else:
@@ -133,13 +141,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.data = data
 
     def plot1d(self, data):
-        self.plotMode = 1
+        # self.plotMode = 1
         self.plotObj.setData(data)
         #self.plotView.plotItem.plot(data)
         #self.plotView.autoRange()
 
     def plot2d(self, data):
-        self.plotMode=2
+        # self.plotMode=2
         self.plotItem.setImage(data)
         #self.plotView.autoRange()
 
@@ -147,7 +155,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def plotRandom2d(self):
         data = numpy.random.random((100,100))
         self.plot(data)
-        self.data = data
 
     def plotRandom1d(self):
         data = numpy.random.random(100)
@@ -213,3 +220,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         colorMap = pyqtgraph.ColorMap(pos, color)
         lut = colorMap.getLookupTable(0.0, 1.0, 256)
         self.plotItem.setLookupTable(lut)
+
+if __name__ == "__main__":
+    app = QtGui.QApplication([])
+    w = MagicPlot()
+    w.show()
+    sys.exit(app.exec_())

@@ -19,7 +19,14 @@
      <item>
       <widget class="QPushButton" name="plotSomething">
        <property name="text">
-        <string>Plot</string>
+        <string>Plot 1d</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="plotSomething2d">
+       <property name="text">
+        <string>Plot 2d</string>
        </property>
       </widget>
      </item>

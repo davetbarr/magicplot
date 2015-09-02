@@ -38,6 +38,7 @@ class AOPlot(QtGui.QWidget, aoPlot_ui.Ui_AOPlot):
         self.verticalLayout.addWidget(self.mp)
 
         self.plotSomething.clicked.connect(self.mp.plotRandom1d)
+        self.plotSomething2d.clicked.connect(self.mp.plotRandom2d)
         #Subscribe window
         self.subSelect = SubscribeWindow()
 
@@ -495,4 +496,4 @@ if __name__ == "__main__":
     w.show()
 
     print 'done'
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_())
