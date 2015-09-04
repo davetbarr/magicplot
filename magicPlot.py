@@ -20,6 +20,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
 
+        self.histButton.clicked.connect(self.popoutHist)
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
         # to layout
@@ -30,9 +31,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # Initialise ROIs
         self.rectROI = pyqtgraph.RectROI((0,0),(0,0))
         self.lineROI = pyqtgraph.LineSegmentROI((0,0),(0,0))
-
-        # Connect signal for change shape
-        self.shapeDrawer.changeShapeSignal.connect(self.changeROI)
 
         # Set initial splitter sizes
         self.drawSplitter.setSizes([200,1])
@@ -46,7 +44,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotObj = self.plotView.plotItem.plot()
         self.plotItem = self.plotView.plotItem
         self.viewBox = self.plotView.getViewBox()
-
 
     def set2dPlot(self):
         print("Set 2d Plot")
@@ -76,11 +73,17 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.mousePosMoved)
         self.plotLayout.addWidget(self.plotView)
 
+        self.shapeDrawer.clearShapes()
         self.shapeDrawer.setView(self.plotView, self.plotItem)
 
     def deletePlotItem(self):
         for i in reversed(range(self.plotLayout.count())):
             self.plotLayout.itemAt(i).widget().setParent(None)
+
+    def popoutHist(self):
+        self.hist = pyqtgraph.HistogramLUTWidget(image=self.plotItem)
+        # self.hist.setHistogramRange(0,100)
+        self.hist.show()
 
 # Mouse tracking on plot
 ##############################
@@ -96,6 +99,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         value = None
 
         # Try to index, if not then out of bounds. Don't worry about that.
+        # Also ignore if no data plotted
         try:
             if self.plotMode == 1:
                 value = self.data[self.mousePos.x()]
@@ -104,7 +108,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 if min(self.mousePos.x(), self.mousePos.y())>0:
                     value = self.data[self.mousePos.x(),self.mousePos.y()]
 
-        except IndexError:
+        except (IndexError, AttributeError):
             pass
 
         if value!=None:
@@ -123,7 +127,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             dims (int, optional): The number of dimensions with which to plot each data set.
         """
 
-        print("plot!")
         # If data is to plotted in 1-d
         if dims==1 or data.ndim==1:
             # Only change plotMode if not already in correct plotMode
@@ -148,7 +151,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def plot2d(self, data):
         # self.plotMode=2
-        self.plotItem.setImage(data)
+        try:
+            if self.hist.isVisible():
+                self.plotItem.setImage(data, autoLevels=False, autoHistogramRange=False)
+            else:
+                self.plotItem.setImage(data, autoLevels=True, autoHistogramRange=False)
+        except AttributeError:
+            self.plotItem.setImage(data, autoLevels=True, autoHistogramRange=False)
         #self.plotView.autoRange()
 
 
@@ -202,11 +211,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             self.plotView.addItem(self.lineROI)
         else:
             print "Not a valid shape"
-
-    def levels(self):
-        maxval = self.maxSlider.value()
-        minval = self.minSlider.value()
-        self.plotItem.setLevels([minval,maxval])
 
     def colorMapToggle(self, checked):
         if checked:

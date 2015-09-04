@@ -189,7 +189,6 @@ class AOPlot(QtGui.QWidget, aoPlot_ui.Ui_AOPlot):
         self.mp.plot(data)
 
     def plotCents(self, data):
-        self.mp.plotMode = 2
         try:
             self.mp.centPlot.clear()
         except AttributeError:
@@ -204,7 +203,6 @@ class AOPlot(QtGui.QWidget, aoPlot_ui.Ui_AOPlot):
         self.mp.centPlot.setData(xs, ys, size=3, pxMode=False, symbol='+')
 
     def plotSubaps(self, data):
-        self.mp.plotMode = 2
         try:
             self.mp.subapPlot.clear()
         except AttributeError:
@@ -275,6 +273,7 @@ class AOPlot(QtGui.QWidget, aoPlot_ui.Ui_AOPlot):
         except AttributeError:
             print "no data to save"
         except IOError:
+            # if fname already exists, overwrite
             f = fits.open(fname, mode='update')
             f[0].data = data
             f.flush()
@@ -483,7 +482,6 @@ class UpdateThread(QtCore.QThread):
         """
         self.subscription.stop()
 
-
 class SubscribeWindow(QtGui.QWidget, subscribeWindow_ui.Ui_subscribeWindow):
 
     def __init__(self, parent=None):
@@ -496,4 +494,4 @@ if __name__ == "__main__":
     w.show()
 
     print 'done'
-    # sys.exit(app.exec_())
+    sys.exit(app.exec_())
