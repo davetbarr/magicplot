@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>579</width>
-    <height>486</height>
+    <width>658</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,39 +34,16 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="histButton">
+         <property name="text">
+          <string>Histogram</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </widget>
-   </item>
-   <item row="1" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QPushButton" name="plotRand1d">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>1-D Random</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="plotRand2d">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>2-D Random</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
    </item>
   </layout>
  </widget>

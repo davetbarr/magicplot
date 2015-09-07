@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ShapeDrawer</class>
- <widget class="QWidget" name="ShapeDrawer">
+ <class>AOPlot</class>
+ <widget class="QWidget" name="AOPlot">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>128</width>
-    <height>317</height>
+    <width>658</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,28 +17,18 @@
    <item row="0" column="0">
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QPushButton" name="drawRectButton">
+      <widget class="QPushButton" name="plotSomething">
        <property name="text">
-        <string>Rectangle</string>
+        <string>Plot 1d</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="drawLineButton">
+      <widget class="QPushButton" name="plotSomething2d">
        <property name="text">
-        <string>Line</string>
+        <string>Plot 2d</string>
        </property>
       </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="drawGridButton">
-       <property name="text">
-        <string>Grid</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QListView" name="shapeList"/>
      </item>
     </layout>
    </item>

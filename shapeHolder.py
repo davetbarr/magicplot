@@ -1,7 +1,9 @@
 from PyQt4 import QtCore, QtGui
+from shapeDrawer import Grid
 
 
 class ShapeContainer(QtCore.QAbstractListModel):
+
 
     def __init__(self):
         super(ShapeContainer, self).__init__()
@@ -29,13 +31,14 @@ class ShapeContainer(QtCore.QAbstractListModel):
 
     def removeShape(self, index):
         self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
-
         shape = self.shapeList.pop(index.row())
         shape.setVisible(False)
         self.endRemoveRows()
 
     def clearShapes(self):
         self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
+        for i in self.shapeList:
+            i.setVisible(False)
         self.shapeList = []
         self.endRemoveRows()
 
@@ -65,6 +68,13 @@ def getShapeName(shape):
         l = shape.line()
         return "Line @ ({:.1f}, {:.1f}) to ({:.1f}, {:.1f})".format(
                 l.x1(), l.y1(), l.x2(), l.y2()
+                )
+    elif type(shape)==Grid:
+        r = shape.outRect.rect()
+        nRows = shape.nRows
+        nColumns = shape.nColumns
+        return "Grid @ ({:.1f}, {:.1f}), Rows: {:d}, Columns: {:d}".format(
+                r.x(), r.y(), nRows, nColumns
                 )
     else:
         return "Unkown Shape"
