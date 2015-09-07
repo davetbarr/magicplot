@@ -37,9 +37,6 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QListView" name="shapeList"/>
-     </item>
     </layout>
    </item>
   </layout>

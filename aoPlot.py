@@ -488,10 +488,9 @@ class SubscribeWindow(QtGui.QWidget, subscribeWindow_ui.Ui_subscribeWindow):
         super(SubscribeWindow, self).__init__(parent)
         self.setupUi(self)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QtGui.QApplication([])
     w = AOPlot()
     w.show()
-
-    print 'done'
-    sys.exit(app.exec_())
+    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+        QtGui.QApplication.instance().exec_()
