@@ -32,16 +32,22 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
         # Setup list to hold shapes
         self.shapes = shapeHolder.ShapeContainer()
+        self.shapeList = ShapeList(self)
+        self.verticalLayout.addWidget(self.shapeList)
         self.shapeList.setModel(self.shapes)
         self.index = 0
         self.isDrawingRect = 0
         self.isDrawingLine = 0
 
+
         # Connect double click to delete shape
-        self.shapeList.doubleClicked.connect(self.shapes.removeShape)
-        self.shapeList.clicked.connect(self.openDialog)
+        self.shapeList.doubleClicked.connect(self.openDialog)
+        self.shapeList.delKeySig.connect(self.shapes.removeShape)
 
         self.setView(view, item)
+
+    def keyHandler(self, event):
+        print event
 
     def getShapes(self):
         return self.shapes
@@ -67,23 +73,49 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     def clearShapes(self):
         self.shapes.clearShapes()
 
+############ Dialog methods
+
     def openDialog(self, index):
         shape = self.shapes[index.row()]
-        dialog = GridDialog(shape)
+        if type(shape)==Grid:
+            self.dialog = GridDialog(shape=shape)
+            self.dialog.applySig.connect(self.applyGridChanges)
+        elif type(shape)==QtGui.QGraphicsRectItem:
+            self.dialog = RectDialog(shape=shape)
+            self.dialog.applySig.connect(self.applyRectChanges)
+        # elif type(shape)==QtGui.QGraphicsLineItem:
+        #     dialog = LineDialog(shape)
+
+    def applyGridChanges(self):
+        print "apply"
+        rows, columns, color, result = self.dialog.getValues()
+        self.dialog.shape.nRows = rows
+        self.dialog.shape.nColumns = columns
+        self.dialog.shape.color = color
+        self.dialog.shape.update()
+
+    def applyRectChanges(self):
+        print "apply"
+        x, y, xSize, ySize, color, result = self.dialog.getValues()
+        self.dialog.shape.setRect(x, y, xSize, ySize)
+        self.dialog.shape.setPen(QtGui.QPen(color))
 
 # Rectangle drawing methods
 #############################
 
     def drawRect(self):
 
-        self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
-
-        print("DRAW RECT!")
-
-        # self.painter.fillRect(
-        #     self.rects[-1]s[-1], QtGui.QBrush(QtGui.QColor("red")))
-
-        #self.scene.addItem(self.rects[-1])
+        x, y, xSize, ySize, color, accepted = \
+            RectDialog(modal=True).getValues()
+        if (x and y and xSize and ySize) == 0.0 and accepted == 1:
+            self.color = color
+            self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
+            print("DRAW RECT!")
+        elif (x, y, xSize, ySize) != 0.0 and accepted == 1:
+            self.shapes.append(QtGui.QGraphicsRectItem(
+                    QtCore.QRectF(x,y,xSize,ySize)))
+            self.shapes[-1].setPen(QtGui.QPen(color))
+            self.plotView.addItem(self.shapes[-1])
 
 
     def updateRect(self, x, y, xSize, ySize):
@@ -130,7 +162,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.rectStartPos = (imgPos.x(), imgPos.y())
             self.shapes.append(QtGui.QGraphicsRectItem(
                     QtCore.QRectF(imgPos.x(),imgPos.y(),0,0)))
-            self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.red))
+            self.shapes[-1].setPen(QtGui.QPen(self.color))
             self.shapes[-1].setZValue(100)
             #self.shapes[-1].setBrush(QtGui.QBrush(QtCore.Qt.red))
 
@@ -246,10 +278,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 ########## Grid Drawing ##############
 
     def drawGrid(self):
-        self.rows, self.cols, self.color, accepted = GridDialog().getValues()
+        self.rows, self.cols, self.color, accepted = \
+            GridDialog(modal=True).getValues()
         if accepted == 1:
             self.scene.sigMouseClicked.connect(self.mouseClicked_grid1)
-
 
     def updateGrid(self, x, y, xSize, ySize):
         self.shapes[-1].setRect(QtCore.QRectF(x, y, xSize, ySize))
@@ -343,41 +375,108 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
 class ShapeDialog(QtGui.QDialog):
 
-    def __init__(self, shape=None, parent=None):
+    applySig = QtCore.pyqtSignal()
+
+    def __init__(self, shape=None, parent=None, modal=False):
         super(ShapeDialog, self).__init__(parent)
         self.layout = QtGui.QGridLayout(self)
         self.colorButton = QtGui.QPushButton("Color")
+        self.applyButton = QtGui.QPushButton("Apply")
         self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel
+            | QtGui.QDialogButtonBox.Apply,
             QtCore.Qt.Horizontal, self)
+        # get apply button and connect to apply slot
+        applyButton = self.buttons.buttons()[2]
+        applyButton.clicked.connect(self.apply)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.colorButton.clicked.connect(self.getColor)
         self.shape = shape
-        self.color = QtGui.QColor("red") #defualt
+        if self.shape == None:
+            applyButton.setEnabled(False)
+            self.color = QtGui.QColor("red") #defualt
+        else:
+            self.color = self.shape.pen().color()
+        # if init with shape, set values in dialog from shape (see subclasses)
+        self.setupUi()
+        self.setValuesFromShape()
+        if modal:
+            self.exec_()
+        else:
+            self.show()
+
 
     def getColor(self):
         colorDialog = QtGui.QColorDialog(self.color)
         self.color = colorDialog.getColor()
+
+    def apply(self):
+        print "emit"
+        self.applySig.emit()
+
+    def setValuesFromShape(self):
+        pass
+
+    def setupUi(self):
+        pass
+
+class RectDialog(ShapeDialog):
+
+    def __init__(self, shape=None, parent=None, modal=False):
+        super(RectDialog, self).__init__(shape=shape, parent=parent,
+                                         modal=modal)
+
+    def setupUi(self):
+        self.posLabel = QtGui.QLabel("Pos (x,y)")
+        self.xPosBox = QtGui.QDoubleSpinBox()
+        self.xPosBox.setMinimum(-99.99)
+        self.yPosBox = QtGui.QDoubleSpinBox()
+        self.yPosBox.setMinimum(-99.99)
+        self.sizeLabel = QtGui.QLabel("Size (width, height)")
+        self.xSizeBox = QtGui.QDoubleSpinBox()
+        self.xSizeBox.setMinimum(-99.99)
+        self.ySizeBox = QtGui.QDoubleSpinBox()
+        self.ySizeBox.setMinimum(-99.99)
+
+        self.layout.addWidget(self.posLabel)
+        self.layout.addWidget(self.xPosBox)
+        self.layout.addWidget(self.yPosBox)
+        self.layout.addWidget(self.sizeLabel)
+        self.layout.addWidget(self.xSizeBox)
+        self.layout.addWidget(self.ySizeBox)
+        self.layout.addWidget(self.colorButton)
+
+        self.layout.addWidget(self.buttons)
+        self.setLayout(self.layout)
+
+    def setValuesFromShape(self):
         try:
-            self.shape.color = self.color
-        except AttributeError:
-            pass
+            rect = self.shape.rect()
+            x, y = rect.x(), rect.y()
+            sizeX, sizeY = rect.width(), rect.height()
+            self.xPosBox.setValue(x)
+            self.yPosBox.setValue(y)
+            self.xSizeBox.setValue(sizeX)
+            self.ySizeBox.setValue(sizeY)
+        except AttributeError as e:
+            print "no shape"
+
+    def getValues(self):
+        return (self.xPosBox.value(),
+                self.yPosBox.value(),
+                self.xSizeBox.value(),
+                self.ySizeBox.value(),
+                self.color,
+                self.result())
+
+
 
 class GridDialog(ShapeDialog):
 
-    def __init__(self, parent=None):
-        super(GridDialog, self).__init__(parent)
-        self.setupUi()
-        try:
-            self.rowsBox.setValue(self.shape.nRows)
-            self.columnsBox.setValue(self.shape.nColumns)
-            self.rowsBox.valueChanged.connect(self.setRows)
-            self.columnsBox.valueChanged.connect(self.setColumns)
-        except AttributeError:
-            pass
-
-        self.exec_()
+    def __init__(self, shape=None, parent=None, modal=False):
+        super(GridDialog, self).__init__(shape=shape, parent=parent,
+                                         modal=modal)
 
     def setupUi(self):
         self.rowsLabel = QtGui.QLabel("# Rows")
@@ -400,13 +499,18 @@ class GridDialog(ShapeDialog):
                 self.result()
                 )
 
-    def setRows(self, nRows):
-        self.shape.nRows = nRows
-        self.shape.update()
 
-    def setColumns(self, nColumns):
-        self.shape.nColumns = nColumns
-        self.shape.update()
+    def getColor(self):
+        colorDialog = QtGui.QColorDialog(self.color)
+        self.color = colorDialog.getColor()
+
+    def setValuesFromShape(self):
+        try:
+            self.rowsBox.setValue(self.shape.nRows)
+            self.columnsBox.setValue(self.shape.nColumns)
+        except AttributeError:
+            pass
+
 
 class Grid(QtGui.QGraphicsRectItem):
 
@@ -449,9 +553,13 @@ class Grid(QtGui.QGraphicsRectItem):
     @color.setter
     def color(self, color):
         self._color = color
-        self.outRect.setPen(QtGui.QPen(color))
+        self._pen = QtGui.QPen(color)
+        self.outRect.setPen(self._pen)
         for i in self.vLines + self.hLines:
             i.setPen(QtGui.QPen(color))
+
+    def pen(self):
+        return self._pen
 
     @property
     def nRows(self):
@@ -482,3 +590,19 @@ class Grid(QtGui.QGraphicsRectItem):
             pass
         self.vLines = []
         self.vLines = [QtGui.QGraphicsLineItem(self) for i in range(nColumns-1)]
+
+class ShapeList(QtGui.QListView):
+    """
+    QListView to view shapes drawn on MagicPlot, reimplemented keyPressEvent
+    to handle delete key (n.b. this breaks the arrow keys)
+    """
+    delKeySig = QtCore.pyqtSignal(object)
+
+    def __init__(self, parent):
+        super(ShapeList, self).__init__(parent)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Delete:
+            self.delKeySig.emit(self.currentIndex())
+        else:
+            pass
