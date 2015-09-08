@@ -15,8 +15,6 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
     def __init__(self, parent=None, view=None, item=None):
         super(AnalysisPane, self).__init__(parent)
         self.setupUi(self)
-        self.region = Region()
-        self.region.setVisible(False)
         self.checkRegion.toggled.connect(self.regionToggle)
         self.setView(view, item)
 
@@ -42,6 +40,8 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
     def setView(self, view, item):
         self.plotView = view
         self.plotItem = item
+        self.region = Region()
+        self.region.setVisible(False)
 
     def regionToggle(self, checked):
         if checked:
