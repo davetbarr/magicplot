@@ -35,9 +35,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.shapeList = ShapeList(self)
         self.verticalLayout.addWidget(self.shapeList)
         self.shapeList.setModel(self.shapes)
-        self.index = 0
-        self.isDrawingRect = 0
-        self.isDrawingLine = 0
 
 
         # Connect double click to delete shape
@@ -163,7 +160,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         imgPos = self.viewBox.mapSceneToView(pos)
         print imgPos
-        #self.isDrawingRect =1
         if      (pos.y() > 0 and pos.x() > 0
                 and pos.y() < scene.height
                 and pos.x() < scene.width):
@@ -201,7 +197,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_rect2)
 
             self.shapes.updateView()
-        self.isDrawingRect = 0
 
     def drawRectFromRect(self, rect):
         #self.shapes.append(QtGui.QGraphicsRectItem(rect))
@@ -255,7 +250,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         print("Line Mouse clicked 1!")
         pos = event.scenePos()
         imgPos = self.viewBox.mapSceneToView(pos)
-        self.isDrawingLine = 1
         if      (pos.y() > 0 and pos.x() > 0
                 and pos.y() < self.scene.height
                 and pos.x() < self.scene.width):
@@ -293,7 +287,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_line2)
 
             self.shapes.updateView()
-        self.isDrawingLine = 0
 
 ########## Grid Drawing ##############
     # if size is 0, draw grid, else add grid

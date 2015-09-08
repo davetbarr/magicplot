@@ -156,6 +156,7 @@ class AOPlot(QtGui.QWidget, aoPlot_ui.Ui_AOPlot):
             if self.mp.plotMode == 1:
                 self.mp.plotView.disableAutoRange()
                 self.mp.plotObj.setData(self.cents)
+                self.mp.dataUpdateSignal.emit(self.cents)
                 return None
             else:
                 self.plotCents(self.centCoOrds)
