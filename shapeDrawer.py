@@ -46,9 +46,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
         self.setView(view, item)
 
-    def keyHandler(self, event):
-        print event
-
     def getShapes(self):
         return self.shapes
 
@@ -80,18 +77,24 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         if type(shape)==Grid:
             self.dialog = GridDialog(shape=shape)
             self.dialog.applySig.connect(self.applyGridChanges)
+            self.dialog.accepted.connect(self.applyGridChanges)
         elif type(shape)==QtGui.QGraphicsRectItem:
             self.dialog = RectDialog(shape=shape)
             self.dialog.applySig.connect(self.applyRectChanges)
-        # elif type(shape)==QtGui.QGraphicsLineItem:
-        #     dialog = LineDialog(shape)
+            self.dialog.accepted.connect(self.applyRectChanges)
+        elif type(shape)==QtGui.QGraphicsLineItem:
+            self.dialog = LineDialog(shape)
+            self.dialog.applySig.connect(self.applyLineChanges)
+            self.dialog.accepted.connect(self.applyLineChanges)
 
     def applyGridChanges(self):
         print "apply"
-        rows, columns, color, result = self.dialog.getValues()
+        xPos, yPos, xSize, ySize, rows, columns, color, result = \
+            self.dialog.getValues()
         self.dialog.shape.nRows = rows
         self.dialog.shape.nColumns = columns
         self.dialog.shape.color = color
+        self.dialog.shape.setRect(QtCore.QRectF(xPos,yPos, xSize, ySize))
         self.dialog.shape.update()
 
     def applyRectChanges(self):
@@ -100,18 +103,24 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.setRect(x, y, xSize, ySize)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
+    def applyLineChanges(self):
+        print "apply"
+        x1, y1, x2, y2, color, result = self.dialog.getValues()
+        self.dialog.shape.setLine(x1, y1, x2, y2)
+        self.dialog.shape.setPen(QtGui.QPen(color))
+
 # Rectangle drawing methods
 #############################
 
     def drawRect(self):
-
+        # if size is 0, draw shape, else add shape
         x, y, xSize, ySize, color, accepted = \
             RectDialog(modal=True).getValues()
-        if (x and y and xSize and ySize) == 0.0 and accepted == 1:
+        if (xSize and ySize) == 0.0 and accepted == 1:
             self.color = color
             self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
             print("DRAW RECT!")
-        elif (x, y, xSize, ySize) != 0.0 and accepted == 1:
+        elif accepted == 1:
             self.shapes.append(QtGui.QGraphicsRectItem(
                     QtCore.QRectF(x,y,xSize,ySize)))
             self.shapes[-1].setPen(QtGui.QPen(color))
@@ -202,14 +211,23 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 # Line drawing methods
 #############################
     def drawLine(self):
-
-        self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
+        # if all values 0 , draw shape, otherwise add shape
+        x1, y1, x2, y2, color, accepted = \
+            LineDialog(modal=True).getValues()
+        print color
+        if (x1 - x2 and y1 - y2) == 0.0 and accepted == 1:
+            self.color = color
+            self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
+            print("DRAW LINE!")
+        elif accepted == 1:
+            self.shapes.append(QtGui.QGraphicsLineItem(
+                    x1, y1, x2, y2))
+            self.shapes[-1].setPen(QtGui.QPen(color))
+            self.plotView.addItem(self.shapes[-1])
 
 
     def updateLine(self, x1, x2, y1, y2):
         self.shapes[-1].setLine(QtCore.QLineF(x1, x2, y1, y2))
-        self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.red))
-        self.plotView.addItem(self.shapes[-1])
 
     def mouseMoved_line(self, pos):
         '''
@@ -247,6 +265,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.shapes.append(
                     QtGui.QGraphicsLineItem(QtCore.QLineF(
                             imgPos.x(),imgPos.y(),imgPos.x(),imgPos.y())))
+            self.plotView.addItem(self.shapes[-1])
+            self.shapes[-1].setPen(QtGui.QPen(self.color))
 
             #self.shapes[-1].setZValue(100)
 
@@ -276,12 +296,19 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.isDrawingLine = 0
 
 ########## Grid Drawing ##############
-
+    # if size is 0, draw grid, else add grid
     def drawGrid(self):
-        self.rows, self.cols, self.color, accepted = \
+        xPos, yPos, xSize, ySize, rows, cols, color, accepted = \
             GridDialog(modal=True).getValues()
-        if accepted == 1:
+        if (xSize and ySize) == 0 and accepted == 1:
+            self.rows, self.cols, self.color = rows, cols, color
             self.scene.sigMouseClicked.connect(self.mouseClicked_grid1)
+        elif accepted == 1:
+            grid = Grid(QtCore.QRectF(
+                xPos, yPos, xSize, ySize), rows, cols)
+            self.shapes.append(grid)
+            grid.color = color
+            self.plotView.addItem(grid)
 
     def updateGrid(self, x, y, xSize, ySize):
         self.shapes[-1].setRect(QtCore.QRectF(x, y, xSize, ySize))
@@ -406,10 +433,11 @@ class ShapeDialog(QtGui.QDialog):
         else:
             self.show()
 
-
     def getColor(self):
         colorDialog = QtGui.QColorDialog(self.color)
-        self.color = colorDialog.getColor()
+        newColor = colorDialog.getColor()
+        if newColor.isValid():
+            self.color = newColor
 
     def apply(self):
         print "emit"
@@ -445,8 +473,8 @@ class RectDialog(ShapeDialog):
         self.layout.addWidget(self.sizeLabel)
         self.layout.addWidget(self.xSizeBox)
         self.layout.addWidget(self.ySizeBox)
-        self.layout.addWidget(self.colorButton)
 
+        self.layout.addWidget(self.colorButton)
         self.layout.addWidget(self.buttons)
         self.setLayout(self.layout)
 
@@ -471,6 +499,51 @@ class RectDialog(ShapeDialog):
                 self.result())
 
 
+class LineDialog(ShapeDialog):
+
+    def __init__(self, shape=None, parent=None, modal=False):
+        super(LineDialog, self).__init__(shape=shape, parent=parent,
+                                         modal=modal)
+
+    def setupUi(self):
+        self.startLabel = QtGui.QLabel("Start Point")
+        self.x1Box = QtGui.QDoubleSpinBox()
+        self.x1Box.setMinimum(-99.99)
+        self.y1Box = QtGui.QDoubleSpinBox()
+        self.y1Box.setMinimum(-99.99)
+        self.endLabel = QtGui.QLabel("End Point")
+        self.x2Box = QtGui.QDoubleSpinBox()
+        self.x2Box.setMinimum(-99.99)
+        self.y2Box = QtGui.QDoubleSpinBox()
+        self.y2Box.setMinimum(-99.99)
+        self.layout.addWidget(self.startLabel)
+        self.layout.addWidget(self.x1Box)
+        self.layout.addWidget(self.y1Box)
+        self.layout.addWidget(self.endLabel)
+        self.layout.addWidget(self.x2Box)
+        self.layout.addWidget(self.y2Box)
+
+        self.layout.addWidget(self.colorButton)
+        self.layout.addWidget(self.buttons)
+        self.setLayout(self.layout)
+
+    def setValuesFromShape(self):
+        try:
+            line = self.shape.line()
+            self.x1Box.setValue(line.x1())
+            self.y1Box.setValue(line.y1())
+            self.x2Box.setValue(line.x2())
+            self.y2Box.setValue(line.y2())
+        except AttributeError:
+            pass
+
+    def getValues(self):
+        return (self.x1Box.value(),
+                self.y1Box.value(),
+                self.x2Box.value(),
+                self.y2Box.value(),
+                self.color,
+                self.result())
 
 class GridDialog(ShapeDialog):
 
@@ -479,6 +552,23 @@ class GridDialog(ShapeDialog):
                                          modal=modal)
 
     def setupUi(self):
+        self.posLabel = QtGui.QLabel("Pos (x,y)")
+        self.xPosBox = QtGui.QDoubleSpinBox()
+        self.xPosBox.setMinimum(-99.99)
+        self.yPosBox = QtGui.QDoubleSpinBox()
+        self.yPosBox.setMinimum(-99.99)
+        self.sizeLabel = QtGui.QLabel("Size (width, height)")
+        self.xSizeBox = QtGui.QDoubleSpinBox()
+        self.xSizeBox.setMinimum(-99.99)
+        self.ySizeBox = QtGui.QDoubleSpinBox()
+        self.ySizeBox.setMinimum(-99.99)
+        self.layout.addWidget(self.posLabel)
+        self.layout.addWidget(self.xPosBox)
+        self.layout.addWidget(self.yPosBox)
+        self.layout.addWidget(self.sizeLabel)
+        self.layout.addWidget(self.xSizeBox)
+        self.layout.addWidget(self.ySizeBox)
+
         self.rowsLabel = QtGui.QLabel("# Rows")
         self.rowsBox = QtGui.QSpinBox()
         self.columnsLabel = QtGui.QLabel("# Columns")
@@ -487,25 +577,28 @@ class GridDialog(ShapeDialog):
         self.layout.addWidget(self.rowsBox)
         self.layout.addWidget(self.columnsLabel)
         self.layout.addWidget(self.columnsBox)
-        self.layout.addWidget(self.colorButton)
 
+        self.layout.addWidget(self.colorButton)
         self.layout.addWidget(self.buttons)
         self.setLayout(self.layout)
 
     def getValues(self):
-        return (self.rowsBox.value(),
+        return (self.xPosBox.value(),
+                self.yPosBox.value(),
+                self.xSizeBox.value(),
+                self.ySizeBox.value(),
+                self.rowsBox.value(),
                 self.columnsBox.value(),
                 self.color,
                 self.result()
                 )
 
-
-    def getColor(self):
-        colorDialog = QtGui.QColorDialog(self.color)
-        self.color = colorDialog.getColor()
-
     def setValuesFromShape(self):
         try:
+            self.xPosBox.setValue(self.shape.outRect.rect().x())
+            self.yPosBox.setValue(self.shape.outRect.rect().y())
+            self.xSizeBox.setValue(self.shape.outRect.rect().width())
+            self.ySizeBox.setValue(self.shape.outRect.rect().height())
             self.rowsBox.setValue(self.shape.nRows)
             self.columnsBox.setValue(self.shape.nColumns)
         except AttributeError:
@@ -520,6 +613,7 @@ class Grid(QtGui.QGraphicsRectItem):
         self.nRows = nRows
         self.nColumns = nColumns
         self.color = QtGui.QColor("red")
+        self.update()
 
     def setRect(self, rect):
         self.outRect.setRect(rect)
