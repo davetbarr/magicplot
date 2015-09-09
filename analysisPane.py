@@ -60,7 +60,7 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
             data = self.region.data
         else:
             data = self.data
-        gradient = (data[-1] - data[0])/len(data)
+        gradient = numpy.average(numpy.gradient(data)) 
         self.gradientDisplay.setText("{:f}".format(gradient))
 
 class Region(pyqtgraph.LinearRegionItem):
