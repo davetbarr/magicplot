@@ -38,13 +38,6 @@
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QPushButton" name="histButton">
-          <property name="text">
-           <string>Histogram</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </widget>
      </widget>

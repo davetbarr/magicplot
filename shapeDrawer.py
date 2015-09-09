@@ -577,8 +577,10 @@ class GridDialog(ShapeDialog):
 
         self.rowsLabel = QtGui.QLabel("# Rows")
         self.rowsBox = QtGui.QSpinBox()
+        self.rowsBox.setMinimum(1)
         self.columnsLabel = QtGui.QLabel("# Columns")
         self.columnsBox = QtGui.QSpinBox()
+        self.columnsBox.setMinimum(1)
         self.layout.addWidget(self.rowsLabel)
         self.layout.addWidget(self.rowsBox)
         self.layout.addWidget(self.columnsLabel)

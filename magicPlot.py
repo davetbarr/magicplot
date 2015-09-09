@@ -27,7 +27,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.dataUpdateSignal.connect(self.analysisPane.updateData)
         self.dataUpdateSignal.connect(self.analysisPane.region.setData)
 
-        self.histButton.clicked.connect(self.popoutHist)
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
         # to layout
@@ -39,8 +38,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.rectROI = pyqtgraph.RectROI((0,0),(0,0))
         self.lineROI = pyqtgraph.LineSegmentROI((0,0),(0,0))
 
+        # Histogram in left splitter
+        self.hist = pyqtgraph.HistogramLUTWidget()
+        self.drawSplitter.insertWidget(0, self.hist)
+
         # Set initial splitter sizes
-        self.drawSplitter.setSizes([200,1])
+        self.drawSplitter.setSizes([0,1,0])
+        self.analysisSplitter.setSizes([1,0])
 
  # Methods to setup plot areaD
  ##################################
@@ -87,11 +91,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def deletePlotItem(self):
         for i in reversed(range(self.plotLayout.count())):
             self.plotLayout.itemAt(i).widget().setParent(None)
-
-    def popoutHist(self):
-        self.hist = pyqtgraph.HistogramLUTWidget(image=self.plotItem)
-        # self.hist.setHistogramRange(0,100)
-        self.hist.show()
 
 # Mouse tracking on plot
 ##############################
@@ -160,13 +159,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def plot2d(self, data):
         # self.plotMode=2
-        try:
-            if self.hist.isVisible():
-                self.plotItem.setImage(data, autoLevels=False, autoHistogramRange=False)
-            else:
-                self.plotItem.setImage(data, autoLevels=True, autoHistogramRange=False)
-        except AttributeError:
-            self.plotItem.setImage(data, autoLevels=True, autoHistogramRange=False)
+        self.plotItem.setImage(data, autoLevels=True)
         #self.plotView.autoRange()
 
 
