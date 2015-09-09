@@ -15,33 +15,38 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <widget class="QSplitter" name="drawSplitter">
+    <widget class="QSplitter" name="analysisSplitter">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Vertical</enum>
      </property>
-     <property name="handleWidth">
-      <number>2</number>
-     </property>
-     <widget class="QWidget" name="verticalLayoutWidget_2">
-      <layout class="QVBoxLayout" name="plotContainerLayout">
-       <item>
-        <layout class="QHBoxLayout" name="plotLayout"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="mousePosLabel">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="histButton">
-         <property name="text">
-          <string>Histogram</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+     <widget class="QSplitter" name="drawSplitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="handleWidth">
+       <number>2</number>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_2">
+       <layout class="QVBoxLayout" name="plotContainerLayout">
+        <item>
+         <layout class="QHBoxLayout" name="plotLayout"/>
+        </item>
+        <item>
+         <widget class="QLabel" name="mousePosLabel">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="histButton">
+          <property name="text">
+           <string>Histogram</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </widget>
    </item>

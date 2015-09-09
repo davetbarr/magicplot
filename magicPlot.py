@@ -6,6 +6,7 @@ os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
 import magicPlot_ui
 import shapeHolder
 import shapeDrawer
+import analysisPane
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
@@ -14,11 +15,17 @@ import numpy
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
+    dataUpdateSignal = QtCore.pyqtSignal(object)
+
     def __init__(self, parent=None):
         super(MagicPlot, self).__init__(parent)
         self.setupUi(self)
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
+        self.analysisPane = analysisPane.AnalysisPane(parent=self)
+        self.analysisSplitter.addWidget(self.analysisPane)
+        self.dataUpdateSignal.connect(self.analysisPane.updateData)
+        self.dataUpdateSignal.connect(self.analysisPane.region.setData)
 
         self.histButton.clicked.connect(self.popoutHist)
         # Guess that 2-d plot will be common
@@ -75,6 +82,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
         self.shapeDrawer.clearShapes()
         self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.analysisPane.setView(self.plotView, self.plotItem)
 
     def deletePlotItem(self):
         for i in reversed(range(self.plotLayout.count())):
@@ -142,6 +150,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         else:
             raise ValueError("Can't plot data of this dimension size")
         self.data = data
+        self.dataUpdateSignal.emit(data)
 
     def plot1d(self, data):
         # self.plotMode = 1
@@ -162,11 +171,11 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
 
     def plotRandom2d(self):
-        data = numpy.random.random((100,100))
+        data = 100*numpy.random.random((100,100))
         self.plot(data)
 
     def plotRandom1d(self):
-        data = numpy.random.random(100)
+        data = 100*numpy.random.random(100)
         self.plot(data)
 
         #getPlotItems
@@ -229,4 +238,5 @@ if __name__ == "__main__":
     app = QtGui.QApplication([])
     w = MagicPlot()
     w.show()
-    sys.exit(app.exec_())
+    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+        QtGui.QApplication.instance().exec_()
