@@ -110,22 +110,20 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 #############################
 
     def drawRect(self):
-        # if size is 0, draw shape, else add shape
-        x, y, xSize, ySize, color, accepted = \
-            RectDialog(modal=True).getValues()
-        if (xSize and ySize) == 0.0 and accepted == 1:
-            self.color = color
-            self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
-            print("DRAW RECT!")
-        elif accepted == 1:
-            self.shapes.append(QtGui.QGraphicsRectItem(
-                    QtCore.QRectF(x,y,xSize,ySize)))
-            self.shapes[-1].setPen(QtGui.QPen(color))
-            self.plotView.addItem(self.shapes[-1])
+        self.dialog = RectDialog()
+        self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
+        self.dialog.accepted.connect(self.drawRectFromValues)
 
+    def drawRectFromValues(self):
+        x, y, xSize, ySize, color, accepted = self.dialog.getValues()
+        self.shapes.append(QtGui.QGraphicsRectItem(
+                QtCore.QRectF(x,y,xSize,ySize)))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
 
     def updateRect(self, x, y, xSize, ySize):
         self.shapes[-1].setRect(QtCore.QRectF(x, y, xSize, ySize))
+        self.dialog.setValuesFromShape()
 
     def mouseMoved_rect(self, pos):
         '''
@@ -155,6 +153,9 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     def mouseClicked_rect1(self, event):
         print("Mouse clicked 1!")
+        self.dialog.accepted.disconnect(self.drawRectFromValues)
+        self.dialog.accepted.connect(self.applyRectChanges)
+        self.dialog.applySig.connect(self.applyRectChanges)
         pos = event.scenePos()
         print(pos)
         scene = self.scene
@@ -167,12 +168,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.rectStartPos = (imgPos.x(), imgPos.y())
             self.shapes.append(QtGui.QGraphicsRectItem(
                     QtCore.QRectF(imgPos.x(),imgPos.y(),0,0)))
-            self.shapes[-1].setPen(QtGui.QPen(self.color))
+            self.shapes[-1].setPen(QtGui.QPen(self.dialog.color))
             self.shapes[-1].setZValue(100)
             #self.shapes[-1].setBrush(QtGui.QBrush(QtCore.Qt.red))
 
 
             self.plotView.addItem(self.shapes[-1])
+            self.dialog.setShape(self.shapes[-1])
             self.updateRect(imgPos.x(), imgPos.y(), 0,0)
             #self.updateRect(pos.x(), pos.y(), 0 ,0)
             self.scene.sigMouseMoved.connect(
@@ -206,23 +208,19 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 # Line drawing methods
 #############################
     def drawLine(self):
-        # if all values 0 , draw shape, otherwise add shape
-        x1, y1, x2, y2, color, accepted = \
-            LineDialog(modal=True).getValues()
-        print color
-        if (x1 - x2 and y1 - y2) == 0.0 and accepted == 1:
-            self.color = color
-            self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
-            print("DRAW LINE!")
-        elif accepted == 1:
-            self.shapes.append(QtGui.QGraphicsLineItem(
-                    x1, y1, x2, y2))
-            self.shapes[-1].setPen(QtGui.QPen(color))
-            self.plotView.addItem(self.shapes[-1])
+        self.dialog = LineDialog()
+        self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
+        self.dialog.accepted.connect(self.drawLineFromValues)
 
+    def drawLineFromValues(self):
+        x1, y1, x2, y2, color, accepted = self.dialog.getValues()
+        self.shapes.append(QtGui.QGraphicsLineItem(x1,y1,x2,y2))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
 
     def updateLine(self, x1, x2, y1, y2):
         self.shapes[-1].setLine(QtCore.QLineF(x1, x2, y1, y2))
+        self.dialog.setValuesFromShape()
 
     def mouseMoved_line(self, pos):
         '''
@@ -248,6 +246,9 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     def mouseClicked_line1(self, event):
         print("Line Mouse clicked 1!")
+        self.dialog.accepted.disconnect(self.drawLineFromValues)
+        self.dialog.accepted.connect(self.applyLineChanges)
+        self.dialog.applySig.connect(self.applyLineChanges)
         pos = event.scenePos()
         imgPos = self.viewBox.mapSceneToView(pos)
         if      (pos.y() > 0 and pos.x() > 0
@@ -260,7 +261,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     QtGui.QGraphicsLineItem(QtCore.QLineF(
                             imgPos.x(),imgPos.y(),imgPos.x(),imgPos.y())))
             self.plotView.addItem(self.shapes[-1])
-            self.shapes[-1].setPen(QtGui.QPen(self.color))
+            self.shapes[-1].setPen(QtGui.QPen(self.dialog.color))
+            self.dialog.setShape(self.shapes[-1])
 
             #self.shapes[-1].setZValue(100)
 
@@ -291,20 +293,21 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 ########## Grid Drawing ##############
     # if size is 0, draw grid, else add grid
     def drawGrid(self):
-        xPos, yPos, xSize, ySize, rows, cols, color, accepted = \
-            GridDialog(modal=True).getValues()
-        if (xSize and ySize) == 0 and accepted == 1:
-            self.rows, self.cols, self.color = rows, cols, color
-            self.scene.sigMouseClicked.connect(self.mouseClicked_grid1)
-        elif accepted == 1:
-            grid = Grid(QtCore.QRectF(
-                xPos, yPos, xSize, ySize), rows, cols)
-            self.shapes.append(grid)
-            grid.color = color
-            self.plotView.addItem(grid)
+        self.dialog = GridDialog()
+        self.scene.sigMouseClicked.connect(self.mouseClicked_grid1)
+        self.dialog.accepted.connect(self.drawGridFromValues)
+
+    def drawGridFromValues(self):
+        xPos, yPos, xSize, ySize, rows, cols, color, result = \
+            self.dialog.getValues()
+        grid = Grid(QtCore.QRectF(
+                xPos,yPos,xSize,ySize),rows,cols)
+        self.shapes.append(grid)
+        self.plotView.addItem(grid)
 
     def updateGrid(self, x, y, xSize, ySize):
         self.shapes[-1].setRect(QtCore.QRectF(x, y, xSize, ySize))
+        self.dialog.setValuesFromShape()
 
     def mouseMoved_grid(self, pos):
         imgPos = self.viewBox.mapSceneToView(pos)
@@ -328,6 +331,9 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     def mouseClicked_grid1(self, event):
         print("Grid Mouse clicked 1")
+        self.dialog.accepted.disconnect(self.drawGridFromValues)
+        self.dialog.accepted.connect(self.applyGridChanges)
+        self.dialog.applySig.connect(self.applyGridChanges)
         pos = event.scenePos()
         print(pos)
         scene = self.scene
@@ -338,19 +344,21 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                 and pos.x() < scene.width):
 
             self.gridStartPos = (imgPos.x(), imgPos.y())
-            self.grid = Grid(QtCore.QRectF(
-                imgPos.x(),imgPos.y(),0,0),self.rows,self.cols)
-            self.shapes.append(self.grid)
+            rows, cols = self.dialog.getRowsCols()
+            grid = Grid(QtCore.QRectF(
+                imgPos.x(),imgPos.y(),0,0),rows,cols)
+            self.shapes.append(grid)
+            self.dialog.setShape(grid)
             # self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.red))
             # self.shapes[-1].setZValue(100)
             #self.shapes[-1].setBrush(QtGui.QBrush(QtCore.Qt.red))
             self.updateGrid(imgPos.x(), imgPos.y(), 0,0)
-            self.grid.color = self.color
+            grid.color = self.dialog.color
             # gridShapes = self.grid.getShapes()
             # for i in gridShapes:
             #     self.plotView.addItem(i)
             #     i.setPen(QtGui.QPen(QtCore.Qt.red))
-            self.plotView.addItem(self.grid)
+            self.plotView.addItem(grid)
             # self.grid.setPen(QtGui.QPen(self.color))
             self.scene.sigMouseMoved.connect(
                     self.mouseMoved_grid)
@@ -401,20 +409,19 @@ class ShapeDialog(QtGui.QDialog):
         super(ShapeDialog, self).__init__(parent)
         self.layout = QtGui.QGridLayout(self)
         self.colorButton = QtGui.QPushButton("Color")
-        self.applyButton = QtGui.QPushButton("Apply")
         self.buttons = QtGui.QDialogButtonBox(
             QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel
             | QtGui.QDialogButtonBox.Apply,
             QtCore.Qt.Horizontal, self)
         # get apply button and connect to apply slot
-        applyButton = self.buttons.buttons()[2]
-        applyButton.clicked.connect(self.apply)
+        self.applyButton = self.buttons.buttons()[2]
+        self.applyButton.clicked.connect(self.apply)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.colorButton.clicked.connect(self.getColor)
         self.shape = shape
         if self.shape == None:
-            applyButton.setEnabled(False)
+            self.applyButton.setEnabled(False)
             self.color = QtGui.QColor("red") #defualt
         else:
             self.color = self.shape.pen().color()
@@ -435,6 +442,12 @@ class ShapeDialog(QtGui.QDialog):
     def apply(self):
         print "emit"
         self.applySig.emit()
+
+    def setShape(self, shape):
+        print "setting shape", shape
+        self.shape = shape
+        self.applyButton.setEnabled(True)
+        self.color = self.shape.pen().color()
 
     def setValuesFromShape(self):
         pass
@@ -585,6 +598,9 @@ class GridDialog(ShapeDialog):
                 self.color,
                 self.result()
                 )
+
+    def getRowsCols(self):
+        return self.rowsBox.value(), self.columnsBox.value()
 
     def setValuesFromShape(self):
         try:
