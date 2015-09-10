@@ -5,9 +5,9 @@ from shapeDrawer import Grid
 class ShapeContainer(QtCore.QAbstractListModel):
 
 
-    def __init__(self):
-        super(ShapeContainer, self).__init__()
-
+    def __init__(self, parent):
+        super(ShapeContainer, self).__init__(parent)
+        self.parent = parent
         self.shapeList = []
 
     def rowCount(self, index):
@@ -22,9 +22,7 @@ class ShapeContainer(QtCore.QAbstractListModel):
 
         return getShapeName(self.shapeList[index.row()])
 
-
     def append(self, shape):
-
         self.beginInsertRows(QtCore.QModelIndex(), 0, 0)
         self.shapeList.append(shape)
         self.endInsertRows()
@@ -33,6 +31,7 @@ class ShapeContainer(QtCore.QAbstractListModel):
         self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
         shape = self.shapeList.pop(index.row())
         shape.setVisible(False)
+        self.parent.plotView.removeItem(shape)
         self.endRemoveRows()
 
     def clearShapes(self):
@@ -76,5 +75,11 @@ def getShapeName(shape):
         return "Grid @ ({:.1f}, {:.1f}), Rows: {:d}, Columns: {:d}".format(
                 r.x(), r.y(), nRows, nColumns
                 )
+    elif type(shape)==QtGui.QGraphicsEllipseItem:
+        c = shape.rect()
+        center = c.center()
+        radius = c.width()/2
+        return "Circle @ Center ({:.1f}, {:.1f}), Radius {:.1f}".format(
+                center.x(), center.y(), radius)
     else:
         return "Unkown Shape"

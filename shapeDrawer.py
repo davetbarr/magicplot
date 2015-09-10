@@ -8,6 +8,7 @@ import shapeDrawer_ui
 
 from PyQt4 import QtCore, QtGui
 import shapeHolder
+import numpy
 
 class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
@@ -29,9 +30,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.drawRectButton.clicked.connect(self.drawRect)
         self.drawLineButton.clicked.connect(self.drawLine)
         self.drawGridButton.clicked.connect(self.drawGrid)
+        self.drawCircleButton.clicked.connect(self.drawCirc)
 
         # Setup list to hold shapes
-        self.shapes = shapeHolder.ShapeContainer()
+        self.shapes = shapeHolder.ShapeContainer(self)
         self.shapeList = ShapeList(self)
         self.verticalLayout.addWidget(self.shapeList)
         self.shapeList.setModel(self.shapes)
@@ -83,6 +85,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog = LineDialog(shape)
             self.dialog.applySig.connect(self.applyLineChanges)
             self.dialog.accepted.connect(self.applyLineChanges)
+        elif type(shape)==QtGui.QGraphicsEllipseItem:
+            self.dialog = CircDialog(shape)
+            self.dialog.applySig.connect(self.applyCircChanges)
+            self.dialog.accepted.connect(self.applyCircChanges)
 
     def applyGridChanges(self):
         print "apply"
@@ -106,6 +112,12 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.setLine(x1, y1, x2, y2)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
+    def applyCircChanges(self):
+        print "apply"
+        xPos, yPos, r, color, result = self.dialog.getValues()
+        self.dialog.shape.setRect(xPos-r, yPos-r, 2*r, 2*r)
+        self.dialog.shape.setPen(QtGui.QPen(color))
+
 # Rectangle drawing methods
 #############################
 
@@ -113,6 +125,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog = RectDialog()
         self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
         self.dialog.accepted.connect(self.drawRectFromValues)
+        self.dialog.rejected.connect(self.cancelDrawRect)
+
+    def cancelDrawRect(self):
+        self.scene.sigMouseClicked.disconnect(self.mouseClicked_rect1)
 
     def drawRectFromValues(self):
         x, y, xSize, ySize, color, accepted = self.dialog.getValues()
@@ -211,6 +227,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog = LineDialog()
         self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
         self.dialog.accepted.connect(self.drawLineFromValues)
+        self.dialog.rejected.connect(self.cancelDrawLine)
+
+    def cancelDrawLine(self):
+        self.scene.sigMouseClicked.disconnect(self.mouseClicked_line1)
 
     def drawLineFromValues(self):
         x1, y1, x2, y2, color, accepted = self.dialog.getValues()
@@ -296,6 +316,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog = GridDialog()
         self.scene.sigMouseClicked.connect(self.mouseClicked_grid1)
         self.dialog.accepted.connect(self.drawGridFromValues)
+        self.dialog.rejected.connect(self.cancelDrawGrid)
+
+    def cancelDrawGrid(self):
+        self.scene.sigMouseClicked.disconnect(self.mouseClicked_grid1)
 
     def drawGridFromValues(self):
         xPos, yPos, xSize, ySize, rows, cols, color, result = \
@@ -401,12 +425,96 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     #         else:
     #             index += 1
 
+########## Circle Drawing ###########
+
+    def drawCirc(self):
+        self.dialog = CircDialog()
+        self.scene.sigMouseClicked.connect(self.mouseClicked_circ1)
+        self.dialog.accepted.connect(self.drawCircFromValues)
+        self.dialog.rejected.connect(self.cancelDrawCirc)
+
+    def cancelDrawCirc(self):
+        self.scene.sigMouseClicked.disconnect(self.mouseClicked_circ1)
+
+    def drawCircFromValues(self):
+        x, y, r, color, accepted = self.dialog.getValues()
+        self.shapes.append(QtGui.QGraphicsEllipseItem(
+                        QtCore.QRectF(x-r,y-r,2*r,2*r)))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
+
+    def updateCirc(self, x, y, r):
+        self.shapes[-1].setRect(QtCore.QRectF(x-r, y-r, 2*r, 2*r))
+        self.dialog.setValuesFromShape()
+
+    def mouseMoved_circ(self, pos):
+        imgPos = self.viewBox.mapSceneToView(pos)
+        scene = self.scene
+        # Only update when mouse is in image
+        if      (pos.y() > 0 and pos.x() > 0
+                and pos.y() < scene.height
+                and pos.x() < scene.width):
+
+            self.mousePos = (imgPos.x(), imgPos.y())
+
+            r = numpy.sqrt((self.mousePos[0]-self.circCenter[0])**2 +
+                        (self.mousePos[1]-self.circCenter[1])**2)
+
+            self.updateCirc(self.circCenter[0], self.circCenter[1], r)
+
+    def mouseClicked_circ1(self, event):
+        self.dialog.accepted.disconnect(self.drawCircFromValues)
+        self.dialog.accepted.connect(self.applyCircChanges)
+        self.dialog.applySig.connect(self.applyCircChanges)
+        pos = event.scenePos()
+        scene = self.scene
+        imgPos = self.viewBox.mapSceneToView(pos)
+
+        if      (pos.y() > 0 and pos.x() > 0
+                and pos.y() < scene.height
+                and pos.x() < scene.width):
+
+            self.circCenter = (imgPos.x(), imgPos.y())
+            self.shapes.append(QtGui.QGraphicsEllipseItem(
+                    QtCore.QRectF(imgPos.x(), imgPos.y(), 0, 0)))
+            self.shapes[-1].setPen(QtGui.QPen(self.dialog.color))
+            self.shapes[-1].setZValue(100)
+
+            self.plotView.addItem(self.shapes[-1])
+            self.dialog.setShape(self.shapes[-1])
+
+            self.scene.sigMouseMoved.connect(
+                    self.mouseMoved_circ)
+            self.scene.sigMouseClicked.disconnect(
+                    self.mouseClicked_circ1)
+            self.scene.sigMouseClicked.connect(
+                    self.mouseClicked_circ2)
+
+    def mouseClicked_circ2(self, event):
+        pos = event.pos()
+        scene = self.scene
+
+        if      (pos.y() > 0 and pos.x() > 0
+                and pos.y() < scene.height
+                and pos.x() < scene.width):
+
+            self.scene.sigMouseMoved.disconnect(
+                    self.mouseMoved_circ)
+            self.scene.sigMouseClicked.disconnect(
+                    self.mouseClicked_circ2)
+
+            self.shapes.updateView()
+
+
 class ShapeDialog(QtGui.QDialog):
 
     applySig = QtCore.pyqtSignal()
 
+
     def __init__(self, shape=None, parent=None, modal=False):
         super(ShapeDialog, self).__init__(parent)
+
+        # Defualt values for doubleSpinBox max, min
         self.layout = QtGui.QGridLayout(self)
         self.colorButton = QtGui.QPushButton("Color")
         self.buttons = QtGui.QDialogButtonBox(
@@ -434,8 +542,7 @@ class ShapeDialog(QtGui.QDialog):
             self.show()
 
     def getColor(self):
-        colorDialog = QtGui.QColorDialog(self.color)
-        newColor = colorDialog.getColor()
+        newColor = QtGui.QColorDialog().getColor(initial=self.color)
         if newColor.isValid():
             self.color = newColor
 
@@ -448,6 +555,12 @@ class ShapeDialog(QtGui.QDialog):
         self.shape = shape
         self.applyButton.setEnabled(True)
         self.color = self.shape.pen().color()
+
+    def setDefaultRange(self, spinboxes):
+        doubleSpinBoxMin = -100000.0
+        doubleSpinBoxMax = 100000.0
+        for i in spinboxes:
+            i.setRange(doubleSpinBoxMin, doubleSpinBoxMax)
 
     def setValuesFromShape(self):
         pass
@@ -464,14 +577,10 @@ class RectDialog(ShapeDialog):
     def setupUi(self):
         self.posLabel = QtGui.QLabel("Pos (x,y)")
         self.xPosBox = QtGui.QDoubleSpinBox()
-        self.xPosBox.setMinimum(-99.99)
         self.yPosBox = QtGui.QDoubleSpinBox()
-        self.yPosBox.setMinimum(-99.99)
         self.sizeLabel = QtGui.QLabel("Size (width, height)")
         self.xSizeBox = QtGui.QDoubleSpinBox()
-        self.xSizeBox.setMinimum(-99.99)
         self.ySizeBox = QtGui.QDoubleSpinBox()
-        self.ySizeBox.setMinimum(-99.99)
 
         self.layout.addWidget(self.posLabel)
         self.layout.addWidget(self.xPosBox)
@@ -482,6 +591,8 @@ class RectDialog(ShapeDialog):
 
         self.layout.addWidget(self.colorButton)
         self.layout.addWidget(self.buttons)
+        self.setDefaultRange([self.xPosBox, self.yPosBox, self.xSizeBox,
+                              self.ySizeBox])
         self.setLayout(self.layout)
 
     def setValuesFromShape(self):
@@ -503,7 +614,6 @@ class RectDialog(ShapeDialog):
                 self.ySizeBox.value(),
                 self.color,
                 self.result())
-
 
 class LineDialog(ShapeDialog):
 
@@ -531,6 +641,7 @@ class LineDialog(ShapeDialog):
 
         self.layout.addWidget(self.colorButton)
         self.layout.addWidget(self.buttons)
+        self.setDefaultRange([self.x1Box, self.y1Box, self.x2Box, self.y2Box])
         self.setLayout(self.layout)
 
     def setValuesFromShape(self):
@@ -577,10 +688,8 @@ class GridDialog(ShapeDialog):
 
         self.rowsLabel = QtGui.QLabel("# Rows")
         self.rowsBox = QtGui.QSpinBox()
-        self.rowsBox.setMinimum(1)
         self.columnsLabel = QtGui.QLabel("# Columns")
         self.columnsBox = QtGui.QSpinBox()
-        self.columnsBox.setMinimum(1)
         self.layout.addWidget(self.rowsLabel)
         self.layout.addWidget(self.rowsBox)
         self.layout.addWidget(self.columnsLabel)
@@ -588,6 +697,10 @@ class GridDialog(ShapeDialog):
 
         self.layout.addWidget(self.colorButton)
         self.layout.addWidget(self.buttons)
+        self.setDefaultRange([self.xPosBox, self.yPosBox, self.xSizeBox,
+                              self.ySizeBox])
+        self.rowsBox.setRange(1,100)
+        self.columnsBox.setRange(1,100)
         self.setLayout(self.layout)
 
     def getValues(self):
@@ -615,6 +728,47 @@ class GridDialog(ShapeDialog):
         except AttributeError:
             pass
 
+class CircDialog(ShapeDialog):
+
+    def __init__(self, shape=None, parent=None, modal=False):
+        super(CircDialog, self).__init__(shape=shape, parent=parent,
+                                        modal = modal)
+
+    def setupUi(self):
+        self.posLabel = QtGui.QLabel("Pos (x,y)")
+        self.xPosBox = QtGui.QDoubleSpinBox()
+        self.yPosBox = QtGui.QDoubleSpinBox()
+        self.radiusLabel = QtGui.QLabel("Radius")
+        self.radiusBox = QtGui.QDoubleSpinBox()
+
+        self.layout.addWidget(self.posLabel)
+        self.layout.addWidget(self.xPosBox)
+        self.layout.addWidget(self.yPosBox)
+        self.layout.addWidget(self.radiusLabel)
+        self.layout.addWidget(self.radiusBox)
+
+        self.layout.addWidget(self.colorButton)
+        self.layout.addWidget(self.buttons)
+        self.setDefaultRange([self.xPosBox, self.yPosBox, self.radiusBox])
+        self.setLayout(self.layout)
+
+    def setValuesFromShape(self):
+        try:
+            circ = self.shape.rect()
+            x, y = circ.x(), circ.y()
+            r = circ.width() # Better way of doing this?
+            self.xPosBox.setValue(x)
+            self.yPosBox.setValue(y)
+            self.radiusBox.setValue(r)
+        except AttributeError:
+            print "no shape"
+
+    def getValues(self):
+        return (self.xPosBox.value(),
+                self.yPosBox.value(),
+                self.radiusBox.value(),
+                self.color,
+                self.result())
 
 class Grid(QtGui.QGraphicsRectItem):
 

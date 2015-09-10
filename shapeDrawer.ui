@@ -37,6 +37,13 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="drawCircleButton">
+       <property name="text">
+        <string>Circle</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>

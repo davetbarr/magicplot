@@ -33,7 +33,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self._plotMode = 2
         self.set2dPlot()
         self.plotMode = 2
-
+        
         # Initialise ROIs
         self.rectROI = pyqtgraph.RectROI((0,0),(0,0))
         self.lineROI = pyqtgraph.LineSegmentROI((0,0),(0,0))
