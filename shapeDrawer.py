@@ -597,7 +597,7 @@ class RectDialog(ShapeDialog):
 
     def setValuesFromShape(self):
         try:
-            rect = self.shape.rect()
+            rect = self.shape.rect().normalized()
             x, y = rect.x(), rect.y()
             sizeX, sizeY = rect.width(), rect.height()
             self.xPosBox.setValue(x)
@@ -719,10 +719,11 @@ class GridDialog(ShapeDialog):
 
     def setValuesFromShape(self):
         try:
-            self.xPosBox.setValue(self.shape.outRect.rect().x())
-            self.yPosBox.setValue(self.shape.outRect.rect().y())
-            self.xSizeBox.setValue(self.shape.outRect.rect().width())
-            self.ySizeBox.setValue(self.shape.outRect.rect().height())
+            rect = self.shape.outRect.rect().normalized()
+            self.xPosBox.setValue(rect.x())
+            self.yPosBox.setValue(rect.y())
+            self.xSizeBox.setValue(rect.width())
+            self.ySizeBox.setValue(rect.height())
             self.rowsBox.setValue(self.shape.nRows)
             self.columnsBox.setValue(self.shape.nColumns)
         except AttributeError:
@@ -755,8 +756,8 @@ class CircDialog(ShapeDialog):
     def setValuesFromShape(self):
         try:
             circ = self.shape.rect()
-            x, y = circ.x(), circ.y()
-            r = circ.width() # Better way of doing this?
+            r = circ.width()/2 # Better way of doing this?
+            x, y = circ.x()+r, circ.y()+r
             self.xPosBox.setValue(x)
             self.yPosBox.setValue(y)
             self.radiusBox.setValue(r)

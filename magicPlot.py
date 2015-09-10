@@ -27,24 +27,31 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.dataUpdateSignal.connect(self.analysisPane.updateData)
         self.dataUpdateSignal.connect(self.analysisPane.region.setData)
 
+        # Initialise HistogramLUTWidget
+        self.histWidget = pyqtgraph.HistogramLUTWidget()
+        self.hist = self.histWidget.item
+        self.drawSplitter.insertWidget(0, self.histWidget)
+
+        # need to connect this so its changed by something, at the moment
+        # it's just always false
+        self.isGettingLevelsFromHist = False
+
+        # Set initial splitter sizes
+        self.drawSplitter.setSizes([0,1,0])
+        self.analysisSplitter.setSizes([1,0])
+
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
         # to layout
         self._plotMode = 2
         self.set2dPlot()
         self.plotMode = 2
-        
+
         # Initialise ROIs
         self.rectROI = pyqtgraph.RectROI((0,0),(0,0))
         self.lineROI = pyqtgraph.LineSegmentROI((0,0),(0,0))
 
-        # Histogram in left splitter
-        self.hist = pyqtgraph.HistogramLUTWidget()
-        self.drawSplitter.insertWidget(0, self.hist)
 
-        # Set initial splitter sizes
-        self.drawSplitter.setSizes([0,1,0])
-        self.analysisSplitter.setSizes([1,0])
 
  # Methods to setup plot areaD
  ##################################
@@ -63,6 +70,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotItem = pyqtgraph.ImageItem()
         self.plotView.addItem(self.plotItem)
         self.viewBox = self.plotView.getViewBox()
+        self.hist.setImageItem(self.plotItem)
 
     @property
     def plotMode(self):
@@ -159,7 +167,12 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def plot2d(self, data):
         # self.plotMode=2
-        self.plotItem.setImage(data, autoLevels=True)
+        self.plotItem.setImage(data, autoLevels=False)
+        if self.isGettingLevelsFromHist:
+            self.plotItem.setImage(data, autoLevels=False)
+            self.plotItem.setLevels(self.hist.getLevels())
+        else:
+            self.plotItem.setImage(data)
         #self.plotView.autoRange()
 
 
@@ -188,6 +201,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     #                 self.rects[-1].rect(), QtGui.QBrush(QtGui.QColor("red")))
 
 #################################
+
 
     def changeROI(self):
         index = self.shapeDrawer.index
