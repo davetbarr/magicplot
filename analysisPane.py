@@ -9,6 +9,8 @@ from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
 import magicPlot
+from scipy.stats import linregress
+
 
 class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
 
@@ -35,6 +37,8 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
     def updateData(self, data):
         self.data = data
         self.region.setData(data)
+        self.region.setRegion((data[0][0], data[0][-1]))
+        self.region.setBounds((data[0][0], data[0][-1]))
         self.gradient()
 
     def setView(self, view, item):
@@ -60,7 +64,7 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
             data = self.region.data
         else:
             data = self.data
-        gradient = numpy.average(numpy.gradient(data)) 
+        gradient = linregress(data[0], data[1])[0]
         self.gradientDisplay.setText("{:f}".format(gradient))
 
 class Region(pyqtgraph.LinearRegionItem):
@@ -70,4 +74,10 @@ class Region(pyqtgraph.LinearRegionItem):
 
     def setData(self, data):
         x1, x2 = self.getRegion()
-        self.data = data[x1:x2]
+        if len(data) == 1:
+            data = None
+        else:
+            data = data
+        index1 = int((x1 - data[0][0])/data[0][-1] * len(data[0]))
+        index2 = int((x2 - data[0][0])/data[0][-1] * len(data[0]))
+        self.data = [data[0][index1:index2], data[1][index1:index2]]

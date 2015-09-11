@@ -12,6 +12,19 @@ from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
 
+############API STUFF##########
+
+plots = []
+
+def plot(*args, **kwargs):
+    pyqtgraph.mkQApp()
+    mplot = MagicPlot()
+    item = mplot.plot(*args, **kwargs)
+    mplot.show()
+    plots.append(mplot)
+    # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+    #     QtGui.QApplication.instance().exec_()
+    return item
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
@@ -59,18 +72,18 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         print("Set 1d Plot")
         self.deletePlotItem()
         self.plotView = pyqtgraph.PlotWidget()
-        self.plotObj = self.plotView.plotItem.plot()
-        self.plotItem = self.plotView.plotItem
+        # self.plotObj = self.plotView.plotItem.plot()
+        # self.plotItem = self.plotView.plotItem
         self.viewBox = self.plotView.getViewBox()
 
     def set2dPlot(self):
         print("Set 2d Plot")
         self.deletePlotItem()
         self.plotView = pyqtgraph.PlotWidget()
-        self.plotItem = pyqtgraph.ImageItem()
-        self.plotView.addItem(self.plotItem)
+        # self.plotItem = pyqtgraph.ImageItem()
+        # self.plotView.addItem(self.plotItem)
         self.viewBox = self.plotView.getViewBox()
-        self.hist.setImageItem(self.plotItem)
+        # self.hist.setImageItem(self.plotItem)
 
     @property
     def plotMode(self):
@@ -87,14 +100,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 raise ValueError("Plot mode {} not available".format(mode))
 
         self._plotMode=mode
-        # Mouse position printing
-        self.plotItem.scene().sigMouseMoved.connect(
-                self.mousePosMoved)
         self.plotLayout.addWidget(self.plotView)
 
         self.shapeDrawer.clearShapes()
-        self.shapeDrawer.setView(self.plotView, self.plotItem)
-        self.analysisPane.setView(self.plotView, self.plotItem)
 
     def deletePlotItem(self):
         for i in reversed(range(self.plotLayout.count())):
@@ -117,7 +125,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # Also ignore if no data plotted
         try:
             if self.plotMode == 1:
-                value = self.data[self.mousePos.x()]
+                value = self.data[1][self.mousePos.x()]
             if self.plotMode == 2:
                 # Only do stuff if position above 0.
                 if min(self.mousePos.x(), self.mousePos.y())>0:
@@ -133,46 +141,49 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     # Plotting methods
     #####################################
-    def plot(self, data, dims=None):
-        """
-        Plot an arbitrary data set.
-
-        Parameters:
-            data (ndarray): An array of data, can be 1-d, 2-d or 3-d
-            dims (int, optional): The number of dimensions with which to plot each data set.
-        """
-
-        # If data is to plotted in 1-d
-        if dims==1 or data.ndim==1:
-            # Only change plotMode if not already in correct plotMode
+    def plot(self, *args, **kwargs):
+        try:
+            # Try to plot 1d
+            dataItem = pyqtgraph.PlotDataItem(*args, **kwargs)
             if self.plotMode != 1:
                 self.plotMode = 1
-            self.plot1d(data)
+            self.plot1d(dataItem)
+            self.data = dataItem.getData()
 
-        elif dims==2 or data.ndim==2:
-            if self.plotMode != 2:
-                self.plotMode = 2
-            self.plot2d(data)
 
-        else:
-            raise ValueError("Can't plot data of this dimension size")
-        self.data = data
-        self.dataUpdateSignal.emit(data)
+        except Exception as e:
+            # Try to plot 2d
+            if e.message.find('array shape must be') == 0:
+                dataItem = pyqtgraph.ImageItem(image=args[0])
+                if self.plotMode != 2:
+                    self.plotMode = 2
+                self.plot2d(dataItem)
+                self.data = args[0]
+            else:
+                raise
+        self.plotItem = dataItem
+        self.plotItem.scene().sigMouseMoved.connect(
+                self.mousePosMoved)
+        self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.analysisPane.setView(self.plotView, self.plotItem)
+        self.dataUpdateSignal.emit(self.data)
+        return dataItem
 
-    def plot1d(self, data):
+    def plot1d(self, dataItem):
         # self.plotMode = 1
-        self.plotObj.setData(data)
+        self.plotView.addItem(dataItem)
         #self.plotView.plotItem.plot(data)
         #self.plotView.autoRange()
 
-    def plot2d(self, data):
+    def plot2d(self, imageItem):
         # self.plotMode=2
-        self.plotItem.setImage(data, autoLevels=False)
-        if self.isGettingLevelsFromHist:
-            self.plotItem.setImage(data, autoLevels=False)
-            self.plotItem.setLevels(self.hist.getLevels())
-        else:
-            self.plotItem.setImage(data)
+        # self.plotItem.setImage(data, autoLevels=False)
+        # if self.isGettingLevelsFromHist:
+        #     self.plotItem.setImage(data, autoLevels=False)
+        #     self.plotItem.setLevels(self.hist.getLevels())
+        # else:
+        #     self.plotItem.setImage(data)
+        self.plotView.addItem(imageItem)
         #self.plotView.autoRange()
 
 
@@ -183,22 +194,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def plotRandom1d(self):
         data = 100*numpy.random.random(100)
         self.plot(data)
-
-        #getPlotItems
-        #if item in plotitems:
-            #update item with data
-        #else
-            #new item
-            #plot data
-
-    # def paintEvent(self, event):
-    #     print("Paint Event!")
-    #     self.painter = QtGui.QPainter()
-    #     self.painter.begin(self)
-
-    #     if len(self.rects):
-    #         self.painter.fillRect(
-    #                 self.rects[-1].rect(), QtGui.QBrush(QtGui.QColor("red")))
 
 #################################
 
