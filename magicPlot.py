@@ -11,6 +11,10 @@ import analysisPane
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
+import warnings
+
+warnings.filterwarnings('ignore')
+
 
 ############API STUFF##########
 
@@ -41,8 +45,15 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.dataUpdateSignal.connect(self.analysisPane.region.setData)
 
         # Initialise HistogramLUTWidget
-        self.histWidget = pyqtgraph.HistogramLUTWidget()
-        self.hist = self.histWidget.item
+        hist = pyqtgraph.HistogramLUTWidget()
+        self.histToggle = QtGui.QCheckBox('Use Histogram')
+        self.histToggle.toggled.connect(self.activateHistogram)
+        self.hist = hist.item
+        histLayout = QtGui.QVBoxLayout()
+        histLayout.addWidget(hist)
+        histLayout.addWidget(self.histToggle)
+        self.histWidget = QtGui.QWidget()
+        self.histWidget.setLayout(histLayout)
         self.drawSplitter.insertWidget(0, self.histWidget)
 
         # need to connect this so its changed by something, at the moment
@@ -50,8 +61,26 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.isGettingLevelsFromHist = False
 
         # Set initial splitter sizes
-        self.drawSplitter.setSizes([0,1,0])
-        self.analysisSplitter.setSizes([1,0])
+        self.drawSplitter.setSizes([1,1000,1])
+        self.analysisSplitter.setSizes([70,1])
+        self.shapeDrawer.hide()
+        self.histWidget.hide()
+        self.analysisPane.hide()
+
+        # Context menus
+        self.showMenu = QtGui.QMenu('Show...')
+        showShapes = QtGui.QAction('Shapes', self)
+        showShapes.setCheckable(True)
+        showShapes.toggled.connect(self.shapeDrawer.setVisible)
+        self.showMenu.addAction(showShapes)
+        showHist = QtGui.QAction('Histogram', self)
+        showHist.setCheckable(True)
+        showHist.toggled.connect(self.histWidget.setVisible)
+        self.showMenu.addAction(showHist)
+        showAnalysis = QtGui.QAction('Analysis', self)
+        showAnalysis.setCheckable(True)
+        showAnalysis.toggled.connect(self.analysisPane.setVisible)
+        self.showMenu.addAction(showAnalysis)
 
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
@@ -65,7 +94,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.lineROI = pyqtgraph.LineSegmentROI((0,0),(0,0))
 
 
-
  # Methods to setup plot areaD
  ##################################
     def set1dPlot(self):
@@ -75,6 +103,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotObj = self.plotView.plotItem.plot()
         # self.plotItem = self.plotView.plotItem
         self.viewBox = self.plotView.getViewBox()
+        self.viewBox.menu.addMenu(self.showMenu)
 
     def set2dPlot(self):
         print("Set 2d Plot")
@@ -84,6 +113,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotView.addItem(self.plotItem)
         self.viewBox = self.plotView.getViewBox()
         # self.hist.setImageItem(self.plotItem)
+        self.viewBox.menu.addMenu(self.showMenu)
 
     @property
     def plotMode(self):
@@ -144,7 +174,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def plot(self, *args, **kwargs):
         try:
             # Try to plot 1d
-            dataItem = pyqtgraph.PlotDataItem(*args, **kwargs)
+            dataItem = MagicPlotDataItem(*args, **kwargs)
             if self.plotMode != 1:
                 self.plotMode = 1
             self.plot1d(dataItem)
@@ -154,7 +184,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
-                dataItem = pyqtgraph.ImageItem(image=args[0])
+                dataItem = MagicPlotImageItem(image=args[0])
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
@@ -184,6 +214,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # else:
         #     self.plotItem.setImage(data)
         self.plotView.addItem(imageItem)
+        self.initHist(imageItem)
         #self.plotView.autoRange()
 
 
@@ -197,6 +228,29 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
 #################################
 
+    def initHist(self, imageItem):
+        self.hist.setImageItem(imageItem)
+        self.hist.sigLevelsChanged.connect(self.histToggle.click)
+        levels = imageItem.getLevels()
+        self.hist.setLevels(levels[0], levels[1])
+
+    def activateHistogram(self, checked):
+        if checked:
+            self.hist.sigLevelsChanged.disconnect(self.histToggle.click)
+            levels = self.plotItem.getLevels()
+            self.plotItem.setOpts(autoLevels=False)
+            self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
+            self.hist.setLevels(levels[0], levels[1])
+        else:
+            self.hist.sigLevelsChanged.connect(self.histToggle.click)
+            self.plotItem.setOpts(autoLevels=True)
+            im = self.plotItem.image
+            self.plotItem.setLevels((im.min(), im.max()))
+            self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+
+    def setLevelsFromHist(self):
+        levels = self.hist.getLevels()
+        self.plotItem.setLevels(levels)
 
     def changeROI(self):
         index = self.shapeDrawer.index
@@ -235,6 +289,16 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         colorMap = pyqtgraph.ColorMap(pos, color)
         lut = colorMap.getLookupTable(0.0, 1.0, 256)
         self.plotItem.setLookupTable(lut)
+
+class MagicPlotImageItem(pyqtgraph.ImageItem):
+
+    def __init__(self, *args, **kwargs):
+        super(MagicPlotImageItem, self).__init__(*args, **kwargs)
+
+class MagicPlotDataItem(pyqtgraph.PlotDataItem):
+
+    def __init__(self, *args, **kwargs):
+        super(MagicPlotDataItem, self).__init__(*args, **kwargs)
 
 if __name__ == "__main__":
     app = QtGui.QApplication([])

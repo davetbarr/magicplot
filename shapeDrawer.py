@@ -9,7 +9,7 @@ import shapeDrawer_ui
 from PyQt4 import QtCore, QtGui
 import shapeHolder
 import numpy
-
+import logging
 class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     """
@@ -91,7 +91,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog.accepted.connect(self.applyCircChanges)
 
     def applyGridChanges(self):
-        print "apply"
         xPos, yPos, xSize, ySize, rows, columns, color, result = \
             self.dialog.getValues()
         self.dialog.shape.nRows = rows
@@ -101,19 +100,16 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.update()
 
     def applyRectChanges(self):
-        print "apply"
         x, y, xSize, ySize, color, result = self.dialog.getValues()
         self.dialog.shape.setRect(x, y, xSize, ySize)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
     def applyLineChanges(self):
-        print "apply"
         x1, y1, x2, y2, color, result = self.dialog.getValues()
         self.dialog.shape.setLine(x1, y1, x2, y2)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
     def applyCircChanges(self):
-        print "apply"
         xPos, yPos, r, color, result = self.dialog.getValues()
         self.dialog.shape.setRect(xPos-r, yPos-r, 2*r, 2*r)
         self.dialog.shape.setPen(QtGui.QPen(color))
@@ -173,10 +169,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.accepted.connect(self.applyRectChanges)
         self.dialog.applySig.connect(self.applyRectChanges)
         pos = event.scenePos()
-        print(pos)
         scene = self.scene
         imgPos = self.viewBox.mapSceneToView(pos)
-        print imgPos
         if      (pos.y() > 0 and pos.x() > 0
                 and pos.y() < scene.height
                 and pos.x() < scene.width):
@@ -265,7 +259,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mousePos[0], self.mousePos[1])
 
     def mouseClicked_line1(self, event):
-        print("Line Mouse clicked 1!")
+        print("Line Mouse clicked 1")
         self.dialog.accepted.disconnect(self.drawLineFromValues)
         self.dialog.accepted.connect(self.applyLineChanges)
         self.dialog.applySig.connect(self.applyLineChanges)
@@ -359,10 +353,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.accepted.connect(self.applyGridChanges)
         self.dialog.applySig.connect(self.applyGridChanges)
         pos = event.scenePos()
-        print(pos)
         scene = self.scene
         imgPos = self.viewBox.mapSceneToView(pos)
-        print imgPos
         if      (pos.y() > 0 and pos.x() > 0
                 and pos.y() < scene.height
                 and pos.x() < scene.width):
@@ -392,7 +384,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_grid2)
 
     def mouseClicked_grid2(self, event):
-        print("Mouse clicked 2")
+        print("Grid Mouse clicked 2")
         pos = event.pos()
         scene = self.scene
         #imgPos = self.plotItem.mapFromScene(pos)
@@ -547,11 +539,9 @@ class ShapeDialog(QtGui.QDialog):
             self.color = newColor
 
     def apply(self):
-        print "emit"
         self.applySig.emit()
 
     def setShape(self, shape):
-        print "setting shape", shape
         self.shape = shape
         self.applyButton.setEnabled(True)
         self.color = self.shape.pen().color()
@@ -605,7 +595,7 @@ class RectDialog(ShapeDialog):
             self.xSizeBox.setValue(sizeX)
             self.ySizeBox.setValue(sizeY)
         except AttributeError as e:
-            print "no shape"
+            logging.info("no shape")
 
     def getValues(self):
         return (self.xPosBox.value(),
@@ -648,7 +638,7 @@ class LineDialog(ShapeDialog):
             self.x2Box.setValue(line.x2())
             self.y2Box.setValue(line.y2())
         except AttributeError:
-            pass
+            logging.info("No Shape")
 
     def getValues(self):
         return (self.x1Box.value(),
@@ -719,7 +709,7 @@ class GridDialog(ShapeDialog):
             self.rowsBox.setValue(self.shape.nRows)
             self.columnsBox.setValue(self.shape.nColumns)
         except AttributeError:
-            pass
+            logging.info('No shape')
 
 class CircDialog(ShapeDialog):
 
@@ -754,7 +744,7 @@ class CircDialog(ShapeDialog):
             self.yPosBox.setValue(y)
             self.radiusBox.setValue(r)
         except AttributeError:
-            print "no shape"
+            logging.info('No shape')
 
     def getValues(self):
         return (self.xPosBox.value(),

@@ -17,6 +17,8 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
     def __init__(self, parent=None, view=None, item=None):
         super(AnalysisPane, self).__init__(parent)
         self.setupUi(self)
+        self.x1Box.setRange(-100000,100000)
+        self.x2Box.setRange(-100000,100000)
         self.checkRegion.toggled.connect(self.regionToggle)
         self.setView(view, item)
 
@@ -64,8 +66,11 @@ class AnalysisPane(QtGui.QTabWidget, analysisPane_ui.Ui_AnalysisPane):
             data = self.region.data
         else:
             data = self.data
-        gradient = linregress(data[0], data[1])[0]
-        self.gradientDisplay.setText("{:f}".format(gradient))
+        try:
+            gradient = linregress(data[0], data[1])[0]
+            self.gradientDisplay.setText("{:f}".format(gradient))
+        except (ValueError, RuntimeWarning):
+            self.gradientDisplay.setText("Region too small")
 
 class Region(pyqtgraph.LinearRegionItem):
 
