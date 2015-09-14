@@ -31,7 +31,9 @@ def plot(*args, **kwargs):
     return item
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
-
+    """
+    A MagicPlot widget that can be run in a window or embedded.
+    """
     dataUpdateSignal = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
@@ -172,6 +174,23 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     # Plotting methods
     #####################################
     def plot(self, *args, **kwargs):
+        """
+        Plot data in the MagicPlot window.
+
+        Accepts any dimension array as arguments, and will plot in either 1D or
+        2D depending on shape. Accepts data in the following formats:
+
+        ########DATA FORMATS#######
+
+        Parameters:
+            args:
+            kwargs:
+
+        Returns:
+            MagicPlotDataItem: If 1D plot
+            MagicPlotImageItem: If 2D plot
+        """
+
         try:
             # Try to plot 1d
             dataItem = MagicPlotDataItem(*args, **kwargs)
@@ -277,28 +296,61 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         else:
             print "Not a valid shape"
 
-    def colorMapToggle(self, checked):
-        if checked:
-            self.colorMap()
-        else:
-            self.plotItem.setLookupTable()
-
-    def colorMap(self):
-        pos = numpy.array([0,0.49,0.5,1])
-        color = numpy.array([[0,0,0,255], [255,255,255,255], [255,255,0,255], [255,0,0,255]], dtype=numpy.ubyte)
-        colorMap = pyqtgraph.ColorMap(pos, color)
-        lut = colorMap.getLookupTable(0.0, 1.0, 256)
-        self.plotItem.setLookupTable(lut)
-
 class MagicPlotImageItem(pyqtgraph.ImageItem):
+    """
+    A class that defines 2D image data, wrapper around pyqtgraph.ImageItem()
 
+    Returned by MagicPlot.plot()
+    """
     def __init__(self, *args, **kwargs):
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
+    """
+    A class that defines a set of 1D plot data, wrapper around
+    pyqtgraph.PlotDataItem()
 
+    Returned by MagicPlot.plot()
+    """
     def __init__(self, *args, **kwargs):
         super(MagicPlotDataItem, self).__init__(*args, **kwargs)
+        if 'color' in kwargs.keys():
+            self.setColor(pyqtgraph.mkColor(kwargs['color']))
+        if 'type' in kwargs.keys():
+            self.setType(kwargs['type'])
+
+    def setColor(self, color):
+        """
+        Set the color of a line plot
+
+        Parameters:
+            color (str): The new color of the line,
+                        ######POSSIBLE COLORS###########
+
+        Returns:
+            Nothing
+        """
+
+        self.setPen(pyqtgraph.mkPen(pyqtgraph.mkColor(color)))
+
+    def setType(self, plotType):
+        """
+        Set the type of plot
+
+        Parameters:
+            plotType (str): A string describing the plot type, choose from
+                            'scatter' or 'line'
+
+        Returns:
+            nothing
+        """
+
+        if plotType == 'scatter':
+            self.setPen(None)
+            self.setSymbol('o')
+        if plotType == 'line':
+            self.setColor('w')
+            self.setSymbol(None)
 
 if __name__ == "__main__":
     app = QtGui.QApplication([])
