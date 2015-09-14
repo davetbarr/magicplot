@@ -1,6 +1,5 @@
-**********
-MAGIC PLOT
-**********
+**MAGIC PLOT**
+--------------
 
 A generalised, powerful plotting tool for science
 
