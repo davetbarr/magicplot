@@ -60,7 +60,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
         # Initialise HistogramLUTWidget
         hist = pyqtgraph.HistogramLUTWidget()
-        self.histToggle = QtGui.QCheckBox('Use Histogram')
+        self.histToggle = QtGui.QCheckBox('Auto Levels')
+        self.histToggle.setChecked(True)
         self.histToggle.toggled.connect(self.activateHistogram)
         self.hist = hist.item
         histLayout = QtGui.QVBoxLayout()
@@ -266,7 +267,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.hist.setLevels(levels[0], levels[1])
 
     def activateHistogram(self, checked):
-        if checked:
+        if not checked:
             self.hist.sigLevelsChanged.disconnect(self.histToggle.click)
             levels = self.plotItem.getLevels()
             self.plotItem.setOpts(autoLevels=False)
