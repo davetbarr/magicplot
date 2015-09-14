@@ -61,7 +61,5 @@ target/
 # Any backups
 *_bkup
 
-# ignore autogened ui python files
-*_ui.py
 
 *.DS_Store
