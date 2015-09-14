@@ -21,6 +21,18 @@ warnings.filterwarnings('ignore')
 plots = []
 
 def plot(*args, **kwargs):
+    """
+    Helper function to produce a MagicPlot figure.
+
+    Creates a new window to show data.
+
+    All arguments are passed to MagicPlot.plot()
+
+    Parameters:
+        args
+        kwargs
+    """
+
     pyqtgraph.mkQApp()
     mplot = MagicPlot()
     item = mplot.plot(*args, **kwargs)
@@ -294,7 +306,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             h2.setPos(p2)
             self.plotView.addItem(self.lineROI)
         else:
-            print "Not a valid shape"
+            print("Not a valid shape")
 
 class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
@@ -305,6 +317,13 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     def __init__(self, *args, **kwargs):
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
 
+    def setData(self, *args, **kwargs):
+        """
+        Wrapper for pyqtgraph.ImageItem.setImage() to make it consistent with
+        pyqtgraph.PlotDataItem.setData()
+        """
+        self.setImage(*args, **kwargs)
+
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
     A class that defines a set of 1D plot data, wrapper around
@@ -314,10 +333,10 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
     def __init__(self, *args, **kwargs):
         super(MagicPlotDataItem, self).__init__(*args, **kwargs)
-        if 'color' in kwargs.keys():
-            self.setColor(pyqtgraph.mkColor(kwargs['color']))
         if 'type' in kwargs.keys():
             self.setType(kwargs['type'])
+        if 'color' in kwargs.keys():
+            self.setColor(pyqtgraph.mkColor(kwargs['color']))
 
     def setColor(self, color):
         """
@@ -326,9 +345,6 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         Parameters:
             color (str): The new color of the line,
                         ######POSSIBLE COLORS###########
-
-        Returns:
-            Nothing
         """
 
         self.setPen(pyqtgraph.mkPen(pyqtgraph.mkColor(color)))
@@ -340,9 +356,6 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         Parameters:
             plotType (str): A string describing the plot type, choose from
                             'scatter' or 'line'
-
-        Returns:
-            nothing
         """
 
         if plotType == 'scatter':
