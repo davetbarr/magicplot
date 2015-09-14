@@ -2,8 +2,8 @@
 A class to draw shapes onto a QGraphicsView
 """
 import os
-SRC_PATH = os.path.dirname(os.path.abspath(__file__))
-os.system("pyuic4 {0}/shapeDrawer.ui > {0}/shapeDrawer_ui.py".format(SRC_PATH))
+# SRC_PATH = os.path.dirname(os.path.abspath(__file__))
+# os.system("pyuic4 {0}/shapeDrawer.ui > {0}/shapeDrawer_ui.py".format(SRC_PATH))
 import shapeDrawer_ui
 
 from PyQt4 import QtCore, QtGui

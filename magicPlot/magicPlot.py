@@ -1,7 +1,7 @@
 import sys
 import os
-SRC_PATH = os.path.dirname(os.path.abspath(__file__))
-os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
+# SRC_PATH = os.path.dirname(os.path.abspath(__file__))
+# os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
 
 import magicPlot_ui
 import shapeHolder

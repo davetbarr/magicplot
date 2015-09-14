@@ -1,14 +1,14 @@
 import sys
 import os
-SRC_PATH = os.path.dirname(os.path.abspath(__file__))
-os.system("pyuic4 {0}/analysisPane.ui > {0}/analysisPane_ui.py".format(SRC_PATH))
+# SRC_PATH = os.path.dirname(os.path.abspath(__file__))
+# os.system("pyuic4 {0}/analysisPane.ui > {0}/analysisPane_ui.py".format(SRC_PATH))
 
 import analysisPane_ui
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
-import magicPlot
+import magicplot
 from scipy.stats import linregress
 
 
