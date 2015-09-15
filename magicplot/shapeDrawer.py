@@ -626,10 +626,10 @@ class RectDialog(ShapeDialog):
     def setUpdateBoxes(self):
         # set boxes to update shape
         if self.shape != None:
-            self.xPosBox.editingFinished.connect(self.apply)
-            self.yPosBox.editingFinished.connect(self.apply)
-            self.xSizeBox.editingFinished.connect(self.apply)
-            self.ySizeBox.editingFinished.connect(self.apply)
+            self.xPosBox.valueChanged.connect(self.apply)
+            self.yPosBox.valueChanged.connect(self.apply)
+            self.xSizeBox.valueChanged.connect(self.apply)
+            self.ySizeBox.valueChanged.connect(self.apply)
         else:
             logging.info("No shape!")
 
@@ -678,10 +678,10 @@ class LineDialog(ShapeDialog):
 
     def setUpdateBoxes(self):
         if self.shape != None:
-            self.x1Box.editingFinished.connect(self.apply)
-            self.y1Box.editingFinished.connect(self.apply)
-            self.x2Box.editingFinished.connect(self.apply)
-            self.y2Box.editingFinished.connect(self.apply)
+            self.x1Box.valueChanged.connect(self.apply)
+            self.y1Box.valueChanged.connect(self.apply)
+            self.x2Box.valueChanged.connect(self.apply)
+            self.y2Box.valueChanged.connect(self.apply)
         else:
             logging.info("No shape!")
 
@@ -750,12 +750,12 @@ class GridDialog(ShapeDialog):
 
     def setUpdateBoxes(self):
         if self.shape != None:
-            self.xPosBox.editingFinished.connect(self.apply)
-            self.yPosBox.editingFinished.connect(self.apply)
-            self.xSizeBox.editingFinished.connect(self.apply)
-            self.ySizeBox.editingFinished.connect(self.apply)
-            self.rowsBox.editingFinished.connect(self.apply)
-            self.columnsBox.editingFinished.connect(self.apply)
+            self.xPosBox.valueChanged.connect(self.apply)
+            self.yPosBox.valueChanged.connect(self.apply)
+            self.xSizeBox.valueChanged.connect(self.apply)
+            self.ySizeBox.valueChanged.connect(self.apply)
+            self.rowsBox.valueChanged.connect(self.apply)
+            self.columnsBox.valueChanged.connect(self.apply)
         else:
             logging.info("No shape!")
 
@@ -803,9 +803,9 @@ class CircDialog(ShapeDialog):
 
     def setUpdateBoxes(self):
         if self.shape != None:
-            self.xPosBox.editingFinished.connect(self.apply)
-            self.yPosBox.editingFinished.connect(self.apply)
-            self.radiusBox.editingFinished.connect(self.apply)
+            self.xPosBox.valueChanged.connect(self.apply)
+            self.yPosBox.valueChanged.connect(self.apply)
+            self.radiusBox.valueChanged.connect(self.apply)
         else:
             logging.info("No shape!")
 
