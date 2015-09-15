@@ -7,6 +7,7 @@ import os
 import shapeDrawer_ui
 
 from PyQt4 import QtCore, QtGui
+from pyqtgraph import RectROI, CircleROI, LineSegmentROI
 import shapeHolder
 import numpy
 import logging
@@ -82,19 +83,19 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     def openDialog(self, index):
         shape = self.shapes[index.row()]
         if type(shape)==Grid:
-            self.dialog = GridDialog(shape=shape)
+            self.dialog = GridDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyGridChanges)
             self.dialog.finished.connect(self.applyGridChanges)
         elif type(shape)==QtGui.QGraphicsRectItem:
-            self.dialog = RectDialog(shape=shape)
+            self.dialog = RectDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyRectChanges)
             self.dialog.finished.connect(self.applyRectChanges)
         elif type(shape)==QtGui.QGraphicsLineItem:
-            self.dialog = LineDialog(shape)
+            self.dialog = LineDialog(shape, parent=self)
             self.dialog.applySig.connect(self.applyLineChanges)
             self.dialog.finished.connect(self.applyLineChanges)
         elif type(shape)==QtGui.QGraphicsEllipseItem:
-            self.dialog = CircDialog(shape)
+            self.dialog = CircDialog(shape, parent=self)
             self.dialog.applySig.connect(self.applyCircChanges)
             self.dialog.finished.connect(self.applyCircChanges)
 
@@ -105,11 +106,9 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             code = None
 
         if code == 1 or code == None:
-            print "none or 1"
             xPos, yPos, xSize, ySize, rows, columns, color, result = \
                 self.dialog.getValues()
         elif code == 0:
-            print "here"
             xPos, yPos, xSize, ySize, rows, columns, color, result = \
                 self.dialog.initialValues
         else:
@@ -168,7 +167,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 #############################
 
     def drawRect(self):
-        self.dialog = RectDialog()
+        self.dialog = RectDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
         self.dialog.accepted.connect(self.drawRectFromValues)
         self.dialog.rejected.connect(self.cancelDrawRect)
@@ -271,7 +270,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 # Line drawing methods
 #############################
     def drawLine(self):
-        self.dialog = LineDialog()
+        self.dialog = LineDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
         self.dialog.accepted.connect(self.drawLineFromValues)
         self.dialog.rejected.connect(self.cancelDrawLine)
@@ -363,7 +362,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 ########## Grid Drawing ##############
     # if size is 0, draw grid, else add grid
     def drawGrid(self):
-        self.dialog = GridDialog()
+        self.dialog = GridDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_grid1)
         self.dialog.accepted.connect(self.drawGridFromValues)
         self.dialog.rejected.connect(self.cancelDrawGrid)
@@ -479,7 +478,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 ########## Circle Drawing ###########
 
     def drawCirc(self):
-        self.dialog = CircDialog()
+        self.dialog = CircDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_circ1)
         self.dialog.accepted.connect(self.drawCircFromValues)
         self.dialog.rejected.connect(self.cancelDrawCirc)
@@ -559,6 +558,49 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
             self.shapes.updateView()
 
+########### ROI tools #################################
+
+    def setROI(self):
+        shape = self.dialog.shape
+        if type(shape) in [QtGui.QGraphicsRectItem, Grid]:
+            x, y, xSize, ySize  = self.dialog.getValues()[:4]
+            try:
+                print type(self.roi)
+                if type(self.roi) is RectROI:
+                    self.roi.setPos([x,y])
+                    self.roi.setSize([xSize,ySize])
+                else:
+                    self.plotView.removeItem(self.roi)
+                    self.roi = RectROI([x,y],[xSize,ySize])
+                    self.plotView.addItem(self.roi)
+            except AttributeError:
+                self.roi = RectROI([x, y], [xSize, ySize])
+                self.plotView.addItem(self.roi)
+        elif type(shape) is QtGui.QGraphicsEllipseItem:
+            x, y, r = self.dialog.getValues()[:3]
+            try:
+                if type(self.roi) is CircleROI:
+                    self.roi.setPos([x,y])
+                    self.roi.setSize([r,r])
+                else:
+                    self.plotView.removeItem(self.roi)
+                    self.roi = CircleROI([x,y],[r,r])
+                    self.plotView.addItem(self.roi)
+            except AttributeError:
+                self.roi = CircleROI([x,y],[r,r])
+                self.plotView.addItem(self.roi)
+        elif type(shape) is QtGui.QGraphicsLineItem:
+            x1, y1, x2, y2 = self.dialog.getValues()[:4]
+            try:
+                if type(self.roi) is LineSegmentROI:
+                    self.roi.setPos([(x1,y1),(x2,y2)])
+                else:
+                    self.plotView.removeItem(self.roi)
+                    self.roi = LineSegmentROI([(x1,y1),(x2,y2)])
+                    self.plotView.addItem(self.roi)
+            except AttributeError:
+                self.roi = LineSegmentROI([(x1,y1),(x2,y2)])
+                self.plotView.addItem(self.roi)
 
 class ShapeDialog(QtGui.QDialog):
 
@@ -567,16 +609,14 @@ class ShapeDialog(QtGui.QDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(ShapeDialog, self).__init__(parent)
 
-        # Defualt values for doubleSpinBox max, min
         self.layout = QtGui.QGridLayout(self)
         self.colorButton = QtGui.QPushButton("Color")
+        self.roiButton = QtGui.QPushButton("Set RoI")
+        self.roiButton.clicked.connect(self.parent().setROI)
         self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel
-            | QtGui.QDialogButtonBox.Apply,
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
-        # get apply button and connect to apply slot
-        self.applyButton = self.buttons.buttons()[2]
-        self.applyButton.clicked.connect(self.apply)
+        self.buttons.addButton(self.roiButton, 3)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.colorButton.clicked.connect(self.getColor)
@@ -592,9 +632,8 @@ class ShapeDialog(QtGui.QDialog):
         newColor = QtGui.QColorDialog().getColor(initial=self.color)
         if newColor.isValid():
             self.color = newColor
-        # apply colour to shape if there is one
-        if self.shape != None:
-            self.applySig.emit()
+        # apply colour to shape
+        self.applySig.emit()
 
     def apply(self):
         self.applySig.emit()
@@ -603,12 +642,10 @@ class ShapeDialog(QtGui.QDialog):
         if shape != None:
             self.shape = shape
             self.setValuesFromShape()
-            self.applyButton.setEnabled(True)
             self.color = self.shape.pen().color()
             self.setUpdateBoxes()
             self.initialValues = self.getValues()
         else:
-            self.applyButton.setEnabled(False)
             self.color = QtGui.QColor("red") # default
             logging.info('No shape')
 

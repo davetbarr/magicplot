@@ -105,9 +105,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.set2dPlot()
         self.plotMode = 2
 
-        # Initialise ROIs
-        self.rectROI = pyqtgraph.RectROI((0,0),(0,0))
-        self.lineROI = pyqtgraph.LineSegmentROI((0,0),(0,0))
 
 
  # Methods to setup plot areaD
@@ -309,30 +306,21 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         levels = self.hist.getLevels()
         self.plotItem.setLevels(levels)
 
-    def changeROI(self):
-        index = self.shapeDrawer.index
-        shape = self.shapeDrawer.getShapes().__getitem__(index)
+    def plotROI(self):
+        if self.plotMode == 1:
+            logging.info('Doesnt work with 1D plots')
+        if self.plotMode == 2:
+            try:
+                roi = self.shapeDrawer.roi
+            except AttributeError:
+                logging.info('No roi')
+            img = self.plotItem
+            data = roi.getArrayRegion(self.data, img)
+            window = MagicPlot()
+            window.show()
+            window.plot(data)
+            plots.append(window)
 
-        #this gives ?warnings? when the ROI doesn't exist yet, but doesn't crash
-        self.plotView.removeItem(self.rectROI)
-        self.plotView.removeItem(self.lineROI)
-        ##########
-
-        if type(shape) is QtGui.QGraphicsRectItem:
-            rect = shape.boundingRect()
-            newPoint = QtCore.QPointF((rect.left()), rect.top())
-            self.rectROI.setPos(newPoint)
-            self.rectROI.setSize([rect.width(), rect.height()])
-            self.plotView.addItem(self.rectROI)
-        elif type(shape) is QtGui.QGraphicsLineItem:
-            line = shape.line()
-            p1, p2 = line.p1(), line.p2()
-            h1, h2 = self.lineROI.getHandles()
-            h1.setPos(p1)
-            h2.setPos(p2)
-            self.plotView.addItem(self.lineROI)
-        else:
-            print("Not a valid shape")
 
 class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
@@ -349,6 +337,9 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         pyqtgraph.PlotDataItem.setData()
         """
         self.setImage(*args, **kwargs)
+
+    def getImageItem(self):
+        return super(MagicPlotImageItem, self)
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
