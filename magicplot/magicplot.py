@@ -12,6 +12,7 @@ from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
 import warnings
+import logging
 
 warnings.filterwarnings('ignore')
 
@@ -186,6 +187,27 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     # Plotting methods
     #####################################
+
+    def getImageItem(self):
+        """
+        Returns an empty MagicPlotImageItem and adds it to magicplot window
+        """
+        imageItem = MagicPlotImageItem()
+        if self.plotMode != 2:
+            self.plotMode = 2
+        self.plot2d(imageItem)
+        return imageItem
+
+    def getDataItem(self):
+        """
+        Returns an empty MagicPlotDataItem and adds it to magicplot window
+        """
+        dataItem = MagicPlotDataItem()
+        if self.plotMode != 1:
+            self.plotMode = 1
+        self.plot1d(dataItem)
+        return dataItem
+
     def plot(self, *args, **kwargs):
         """
         Plot data in the MagicPlot window.
@@ -264,7 +286,10 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.hist.setImageItem(imageItem)
         self.hist.sigLevelsChanged.connect(self.histToggle.click)
         levels = imageItem.getLevels()
-        self.hist.setLevels(levels[0], levels[1])
+        try:
+            self.hist.setLevels(levels[0], levels[1])
+        except TypeError:
+            logging.info('Empty ImageItem')
 
     def activateHistogram(self, checked):
         if not checked:
