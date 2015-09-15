@@ -84,41 +84,83 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         if type(shape)==Grid:
             self.dialog = GridDialog(shape=shape)
             self.dialog.applySig.connect(self.applyGridChanges)
-            self.dialog.accepted.connect(self.applyGridChanges)
+            self.dialog.finished.connect(self.applyGridChanges)
         elif type(shape)==QtGui.QGraphicsRectItem:
             self.dialog = RectDialog(shape=shape)
             self.dialog.applySig.connect(self.applyRectChanges)
-            self.dialog.accepted.connect(self.applyRectChanges)
+            self.dialog.finished.connect(self.applyRectChanges)
         elif type(shape)==QtGui.QGraphicsLineItem:
             self.dialog = LineDialog(shape)
             self.dialog.applySig.connect(self.applyLineChanges)
-            self.dialog.accepted.connect(self.applyLineChanges)
+            self.dialog.finished.connect(self.applyLineChanges)
         elif type(shape)==QtGui.QGraphicsEllipseItem:
             self.dialog = CircDialog(shape)
             self.dialog.applySig.connect(self.applyCircChanges)
-            self.dialog.accepted.connect(self.applyCircChanges)
+            self.dialog.finished.connect(self.applyCircChanges)
 
-    def applyGridChanges(self):
-        xPos, yPos, xSize, ySize, rows, columns, color, result = \
-            self.dialog.getValues()
+    def applyGridChanges(self, *args):
+        try:
+            code = args[0]
+        except IndexError:
+            code = None
+
+        if code == 1 or code == None:
+            print "none or 1"
+            xPos, yPos, xSize, ySize, rows, columns, color, result = \
+                self.dialog.getValues()
+        elif code == 0:
+            print "here"
+            xPos, yPos, xSize, ySize, rows, columns, color, result = \
+                self.dialog.initialValues
+        else:
+            raise('Result code not recognised')
+
         self.dialog.shape.nRows = rows
         self.dialog.shape.nColumns = columns
         self.dialog.shape.color = color
         self.dialog.shape.setRect(QtCore.QRectF(xPos,yPos, xSize, ySize))
         self.dialog.shape.update()
 
-    def applyRectChanges(self):
-        x, y, xSize, ySize, color, result = self.dialog.getValues()
+    def applyRectChanges(self, *args):
+        try:
+            code = args[0]
+        except IndexError:
+            code = None
+
+        if code == None or code == 1:
+            x, y, xSize, ySize, color, result = self.dialog.getValues()
+        elif code == 0:
+            x, y, xSize, ySize, color, result = self.dialog.initialValues
+        else:
+            raise('Result code not recognised')
+
         self.dialog.shape.setRect(x, y, xSize, ySize)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
-    def applyLineChanges(self):
-        x1, y1, x2, y2, color, result = self.dialog.getValues()
+    def applyLineChanges(self, *args):
+        try:
+            code = args[0]
+        except IndexError:
+            code = None
+
+        if code == None or code == 1:
+            x1, y1, x2, y2, color, result = self.dialog.getValues()
+        elif code == 0:
+            x1, y1, x2, y2, color, result = self.dialog.initialValues
+
         self.dialog.shape.setLine(x1, y1, x2, y2)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
-    def applyCircChanges(self):
-        xPos, yPos, r, color, result = self.dialog.getValues()
+    def applyCircChanges(self, *args):
+        try:
+            code = args[0]
+        except IndexError:
+            code = None
+        if code == None or code == 1:
+            xPos, yPos, r, color, result = self.dialog.getValues()
+        elif code == 0:
+            xPos, yPos, r, color, result = self.dialog.initialValues
+
         self.dialog.shape.setRect(xPos-r, yPos-r, 2*r, 2*r)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
@@ -132,7 +174,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.rejected.connect(self.cancelDrawRect)
 
     def cancelDrawRect(self):
-        self.scene.sigMouseClicked.disconnect(self.mouseClicked_rect1)
+        try:
+            self.scene.sigMouseClicked.disconnect(self.mouseClicked_rect1)
+        except TypeError:
+            pass
 
     def drawRectFromValues(self):
         x, y, xSize, ySize, color, accepted = self.dialog.getValues()
@@ -232,7 +277,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.rejected.connect(self.cancelDrawLine)
 
     def cancelDrawLine(self):
-        self.scene.sigMouseClicked.disconnect(self.mouseClicked_line1)
+        try:
+            self.scene.sigMouseClicked.disconnect(self.mouseClicked_line1)
+        except TypeError:
+            pass
 
     def drawLineFromValues(self):
         x1, y1, x2, y2, color, accepted = self.dialog.getValues()
@@ -321,7 +369,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.rejected.connect(self.cancelDrawGrid)
 
     def cancelDrawGrid(self):
-        self.scene.sigMouseClicked.disconnect(self.mouseClicked_grid1)
+        try:
+            self.scene.sigMouseClicked.disconnect(self.mouseClicked_grid1)
+        except TypeError:
+            pass
 
     def drawGridFromValues(self):
         xPos, yPos, xSize, ySize, rows, cols, color, result = \
@@ -434,7 +485,10 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.rejected.connect(self.cancelDrawCirc)
 
     def cancelDrawCirc(self):
-        self.scene.sigMouseClicked.disconnect(self.mouseClicked_circ1)
+        try:
+            self.scene.sigMouseClicked.disconnect(self.mouseClicked_circ1)
+        except TypeError:
+            pass
 
     def drawCircFromValues(self):
         x, y, r, color, accepted = self.dialog.getValues()
@@ -510,7 +564,6 @@ class ShapeDialog(QtGui.QDialog):
 
     applySig = QtCore.pyqtSignal()
 
-
     def __init__(self, shape=None, parent=None, modal=False):
         super(ShapeDialog, self).__init__(parent)
 
@@ -527,16 +580,9 @@ class ShapeDialog(QtGui.QDialog):
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.colorButton.clicked.connect(self.getColor)
-        self.shape = shape
         self.setupUi()
-        if self.shape == None:
-            self.applyButton.setEnabled(False)
-            self.color = QtGui.QColor("red") #defualt
-        else:
-            self.color = self.shape.pen().color()
-            self.setUpdateBoxes()
-        # if init with shape, set values in dialog from shape (see subclasses)
-        self.setValuesFromShape()
+        self.setShape(shape)
+
         if modal:
             self.exec_()
         else:
@@ -554,10 +600,17 @@ class ShapeDialog(QtGui.QDialog):
         self.applySig.emit()
 
     def setShape(self, shape):
-        self.shape = shape
-        self.applyButton.setEnabled(True)
-        self.color = self.shape.pen().color()
-        self.setUpdateBoxes()
+        if shape != None:
+            self.shape = shape
+            self.setValuesFromShape()
+            self.applyButton.setEnabled(True)
+            self.color = self.shape.pen().color()
+            self.setUpdateBoxes()
+            self.initialValues = self.getValues()
+        else:
+            self.applyButton.setEnabled(False)
+            self.color = QtGui.QColor("red") # default
+            logging.info('No shape')
 
     def setDefaultRange(self, spinboxes):
         doubleSpinBoxMin = -100000.0
