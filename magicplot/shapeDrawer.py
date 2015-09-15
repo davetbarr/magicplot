@@ -578,16 +578,17 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                 self.plotView.addItem(self.roi)
         elif type(shape) is QtGui.QGraphicsEllipseItem:
             x, y, r = self.dialog.getValues()[:3]
+            cent_x, cent_y, diam = x-r, y-r, 2*r
             try:
                 if type(self.roi) is CircleROI:
-                    self.roi.setPos([x,y])
-                    self.roi.setSize([r,r])
+                    self.roi.setPos([cent_x,cent_y])
+                    self.roi.setSize([diam,diam])
                 else:
                     self.plotView.removeItem(self.roi)
-                    self.roi = CircleROI([x,y],[r,r])
+                    self.roi = CircleROI([cent_x,cent_y],[diam,diam])
                     self.plotView.addItem(self.roi)
             except AttributeError:
-                self.roi = CircleROI([x,y],[r,r])
+                self.roi = CircleROI([cent_x,cent_y],[diam,diam])
                 self.plotView.addItem(self.roi)
         elif type(shape) is QtGui.QGraphicsLineItem:
             x1, y1, x2, y2 = self.dialog.getValues()[:4]
