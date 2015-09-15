@@ -38,7 +38,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.verticalLayout.addWidget(self.shapeList)
         self.shapeList.setModel(self.shapes)
 
-
         # Connect double click to delete shape
         self.shapeList.doubleClicked.connect(self.openDialog)
         self.shapeList.delKeySig.connect(self.shapes.removeShape)
@@ -68,6 +67,15 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     def clearShapes(self):
         self.shapes.clearShapes()
+
+    def contextMenuEvent(self, event):
+        menu = QtGui.QMenu(self)
+        menu.addAction('Test')
+        index = self.shapeList.indexAt(event.pos())
+        print index.row()
+        action = menu.exec_(event.globalPos())
+
+
 
 ############ Dialog methods
 
@@ -164,7 +172,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     xSize, ySize)
 
     def mouseClicked_rect1(self, event):
-        print("Mouse clicked 1!")
+        logging.debug("Mouse clicked 1!")
         self.dialog.accepted.disconnect(self.drawRectFromValues)
         self.dialog.accepted.connect(self.applyRectChanges)
         self.dialog.applySig.connect(self.applyRectChanges)
@@ -195,7 +203,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_rect2)
 
     def mouseClicked_rect2(self, event):
-        print("Mouse clicked 2")
+        logging.debug("Mouse clicked 2")
         pos = event.pos()
         scene = self.scene
         #imgPos = self.plotItem.mapFromScene(pos)
@@ -259,7 +267,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mousePos[0], self.mousePos[1])
 
     def mouseClicked_line1(self, event):
-        print("Line Mouse clicked 1")
+        logging.debug("Line Mouse clicked 1")
         self.dialog.accepted.disconnect(self.drawLineFromValues)
         self.dialog.accepted.connect(self.applyLineChanges)
         self.dialog.applySig.connect(self.applyLineChanges)
@@ -291,7 +299,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_line2)
 
     def mouseClicked_line2(self, event):
-        print("Line Mouse clicked 2")
+        logging.debug("Line Mouse clicked 2")
         pos = event.scenePos()
         imgPos = self.viewBox.mapSceneToView(pos)
         if      (pos.y() > 0 and pos.x() > 0
@@ -348,7 +356,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     xSize, ySize)
 
     def mouseClicked_grid1(self, event):
-        print("Grid Mouse clicked 1")
+        logging.debug("Grid Mouse clicked 1")
         self.dialog.accepted.disconnect(self.drawGridFromValues)
         self.dialog.accepted.connect(self.applyGridChanges)
         self.dialog.applySig.connect(self.applyGridChanges)
@@ -384,7 +392,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_grid2)
 
     def mouseClicked_grid2(self, event):
-        print("Grid Mouse clicked 2")
+        logging.debug("Grid Mouse clicked 2")
         pos = event.pos()
         scene = self.scene
         #imgPos = self.plotItem.mapFromScene(pos)
@@ -520,13 +528,14 @@ class ShapeDialog(QtGui.QDialog):
         self.buttons.rejected.connect(self.reject)
         self.colorButton.clicked.connect(self.getColor)
         self.shape = shape
+        self.setupUi()
         if self.shape == None:
             self.applyButton.setEnabled(False)
             self.color = QtGui.QColor("red") #defualt
         else:
             self.color = self.shape.pen().color()
+            self.setUpdateBoxes()
         # if init with shape, set values in dialog from shape (see subclasses)
-        self.setupUi()
         self.setValuesFromShape()
         if modal:
             self.exec_()
@@ -537,6 +546,9 @@ class ShapeDialog(QtGui.QDialog):
         newColor = QtGui.QColorDialog().getColor(initial=self.color)
         if newColor.isValid():
             self.color = newColor
+        # apply colour to shape if there is one
+        if self.shape != None:
+            self.applySig.emit()
 
     def apply(self):
         self.applySig.emit()
@@ -545,6 +557,7 @@ class ShapeDialog(QtGui.QDialog):
         self.shape = shape
         self.applyButton.setEnabled(True)
         self.color = self.shape.pen().color()
+        self.setUpdateBoxes()
 
     def setDefaultRange(self, spinboxes):
         doubleSpinBoxMin = -100000.0
@@ -558,11 +571,14 @@ class ShapeDialog(QtGui.QDialog):
     def setupUi(self):
         pass
 
+    def setUpdateBoxes(self):
+        pass
+
 class RectDialog(ShapeDialog):
 
     def __init__(self, shape=None, parent=None, modal=False):
         super(RectDialog, self).__init__(shape=shape, parent=parent,
-                                         modal=modal)
+                                        modal=modal)
 
     def setupUi(self):
         self.posLabel = QtGui.QLabel("Pos (x,y)")
@@ -571,6 +587,7 @@ class RectDialog(ShapeDialog):
         self.sizeLabel = QtGui.QLabel("Size (width, height)")
         self.xSizeBox = QtGui.QDoubleSpinBox()
         self.ySizeBox = QtGui.QDoubleSpinBox()
+
 
         self.layout.addWidget(self.posLabel)
         self.layout.addWidget(self.xPosBox)
@@ -584,6 +601,7 @@ class RectDialog(ShapeDialog):
         self.setDefaultRange([self.xPosBox, self.yPosBox, self.xSizeBox,
                               self.ySizeBox])
         self.setLayout(self.layout)
+
 
     def setValuesFromShape(self):
         try:
@@ -604,6 +622,16 @@ class RectDialog(ShapeDialog):
                 self.ySizeBox.value(),
                 self.color,
                 self.result())
+
+    def setUpdateBoxes(self):
+        # set boxes to update shape
+        if self.shape != None:
+            self.xPosBox.editingFinished.connect(self.apply)
+            self.yPosBox.editingFinished.connect(self.apply)
+            self.xSizeBox.editingFinished.connect(self.apply)
+            self.ySizeBox.editingFinished.connect(self.apply)
+        else:
+            logging.info("No shape!")
 
 class LineDialog(ShapeDialog):
 
@@ -648,6 +676,15 @@ class LineDialog(ShapeDialog):
                 self.color,
                 self.result())
 
+    def setUpdateBoxes(self):
+        if self.shape != None:
+            self.x1Box.editingFinished.connect(self.apply)
+            self.y1Box.editingFinished.connect(self.apply)
+            self.x2Box.editingFinished.connect(self.apply)
+            self.y2Box.editingFinished.connect(self.apply)
+        else:
+            logging.info("No shape!")
+
 class GridDialog(ShapeDialog):
 
     def __init__(self, shape=None, parent=None, modal=False):
@@ -681,8 +718,8 @@ class GridDialog(ShapeDialog):
         self.layout.addWidget(self.buttons)
         self.setDefaultRange([self.xPosBox, self.yPosBox, self.xSizeBox,
                               self.ySizeBox])
-        self.rowsBox.setRange(1,100)
-        self.columnsBox.setRange(1,100)
+        self.rowsBox.setRange(2,1000)
+        self.columnsBox.setRange(2,1000)
         self.setLayout(self.layout)
 
     def getValues(self):
@@ -710,6 +747,17 @@ class GridDialog(ShapeDialog):
             self.columnsBox.setValue(self.shape.nColumns)
         except AttributeError:
             logging.info('No shape')
+
+    def setUpdateBoxes(self):
+        if self.shape != None:
+            self.xPosBox.editingFinished.connect(self.apply)
+            self.yPosBox.editingFinished.connect(self.apply)
+            self.xSizeBox.editingFinished.connect(self.apply)
+            self.ySizeBox.editingFinished.connect(self.apply)
+            self.rowsBox.editingFinished.connect(self.apply)
+            self.columnsBox.editingFinished.connect(self.apply)
+        else:
+            logging.info("No shape!")
 
 class CircDialog(ShapeDialog):
 
@@ -752,6 +800,14 @@ class CircDialog(ShapeDialog):
                 self.radiusBox.value(),
                 self.color,
                 self.result())
+
+    def setUpdateBoxes(self):
+        if self.shape != None:
+            self.xPosBox.editingFinished.connect(self.apply)
+            self.yPosBox.editingFinished.connect(self.apply)
+            self.radiusBox.editingFinished.connect(self.apply)
+        else:
+            logging.info("No shape!")
 
 class Grid(QtGui.QGraphicsRectItem):
 
