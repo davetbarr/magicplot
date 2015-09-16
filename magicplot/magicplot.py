@@ -237,13 +237,22 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
                 dataItem = MagicPlotImageItem(image=args[0])
-                dataItem.sigImageChanged.connect(self.updateWindows)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
-                self.data = args[0]
+                self.data = dataItem.image
             else:
                 raise
+
+        # lock panning to plot area
+        if 'panBounds' in kwargs.keys():
+            if kwargs['panBounds'] is True:
+                rect = self.viewBox.viewRect()
+                self.viewBox.setLimits(xMin=rect.left(),
+                                    xMax=rect.right(),
+                                    yMin=rect.top(),
+                                    yMax=rect.bottom())
+
         self.plotItem = dataItem
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
