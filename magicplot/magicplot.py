@@ -6,7 +6,7 @@ import os
 import magicPlot_ui
 import shapeHolder
 import shapeDrawer
-import analysisPane
+import analysisPane_test
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
@@ -47,7 +47,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     """
     A MagicPlot widget that can be run in a window or embedded.
     """
-    dataUpdateSignal = QtCore.pyqtSignal(object)
+    dataUpdateSignal1d = QtCore.pyqtSignal(object)
+    dataUpdateSignal2d = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super(MagicPlot, self).__init__(parent)
@@ -55,10 +56,10 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.setupUi(self)
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
-        self.analysisPane = analysisPane.AnalysisPane(parent=self)
+        self.analysisPane = analysisPane_test.AnalysisPane(parent=self)
         self.analysisSplitter.addWidget(self.analysisPane)
-        self.dataUpdateSignal.connect(self.analysisPane.updateData)
-        self.dataUpdateSignal.connect(self.analysisPane.region.setData)
+        self.dataUpdateSignal1d.connect(self.analysisPane.updateData)
+        self.dataUpdateSignal1d.connect(self.analysisPane.region.setData)
 
         # Initialise HistogramLUTWidget
         hist = pyqtgraph.HistogramLUTWidget()
@@ -231,6 +232,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.plotMode = 1
             self.plot1d(dataItem)
             self.data = dataItem.getData()
+            self.dataUpdateSignal1d.emit(self.data)
 
 
         except Exception as e:
@@ -241,6 +243,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                     self.plotMode = 2
                 self.plot2d(dataItem)
                 self.data = dataItem.image
+                self.dataUpdateSignal2d.emit(self.data)
             else:
                 raise
 
@@ -258,7 +261,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
         self.analysisPane.setView(self.plotView, self.plotItem)
-        self.dataUpdateSignal.emit(self.data)
         return dataItem
 
     def plot1d(self, dataItem):
