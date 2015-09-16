@@ -393,5 +393,14 @@ if __name__ == "__main__":
     app = QtGui.QApplication([])
     w = MagicPlot()
     w.show()
+    # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+    #     QtGui.QApplication.instance().exec_()
+
+    try:
+        __IPYTHON__
+    except NameError:
+        __IPYTHON__=False
+
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+        if not __IPYTHON__:
+            QtGui.QApplication.instance().exec_()
