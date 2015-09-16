@@ -43,6 +43,14 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.shapeList.doubleClicked.connect(self.openDialog)
         self.shapeList.delKeySig.connect(self.shapes.removeShape)
 
+        # Button to plot selected RoI
+        self.plotRoiButton = QtGui.QPushButton('Plot RoI')
+        self.plotRoiButton.setEnabled(False)
+        self.verticalLayout.addWidget(self.plotRoiButton)
+
+        # Init roi
+        self.roi = None
+
         self.setView(view, item)
 
     def getShapes(self):
@@ -61,10 +69,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         if view!=None:
             try:
                 self.scene = self.plotView.scene()
-                self.scene.sigMouseClicked.connect(self.shapeCheck)
             except TypeError:
                 self.scene = self.plotView.scene
-                self.scene.sigMouseClicked.connect(self.shapeCheck)
 
     def clearShapes(self):
         self.shapes.clearShapes()
@@ -560,50 +566,67 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
 ########### ROI tools #################################
 
-    def setROI(self):
-        shape = self.dialog.shape
-        if type(shape) in [QtGui.QGraphicsRectItem, Grid]:
-            x, y, xSize, ySize  = self.dialog.getValues()[:4]
-            try:
-                print type(self.roi)
-                if type(self.roi) is RectROI:
-                    self.roi.setPos([x,y])
-                    self.roi.setSize([xSize,ySize])
-                else:
-                    self.plotView.removeItem(self.roi)
-                    self.roi = RectROI([x,y],[xSize,ySize])
+    def setROI(self, checked):
+        if checked:
+            shape = self.dialog.shape
+            if type(shape) in [QtGui.QGraphicsRectItem, Grid]:
+                x, y, xSize, ySize  = self.dialog.getValues()[:4]
+                try:
+                    if type(self.roi) is RectROI:
+                        self.roi.setPos([x,y])
+                        self.roi.setSize([xSize,ySize])
+                    else:
+                        self.plotView.removeItem(self.roi)
+                        self.roi = RectROI([x,y],[xSize,ySize], removable=True)
+                        self.plotView.addItem(self.roi)
+                except AttributeError:
+                    self.roi = RectROI([x, y], [xSize, ySize], removable=True)
                     self.plotView.addItem(self.roi)
-            except AttributeError:
-                self.roi = RectROI([x, y], [xSize, ySize])
-                self.plotView.addItem(self.roi)
-        elif type(shape) is QtGui.QGraphicsEllipseItem:
-            x, y, r = self.dialog.getValues()[:3]
-            cent_x, cent_y, diam = x-r, y-r, 2*r
-            try:
-                if type(self.roi) is CircleROI:
-                    self.roi.setPos([cent_x,cent_y])
-                    self.roi.setSize([diam,diam])
-                else:
-                    self.plotView.removeItem(self.roi)
-                    self.roi = CircleROI([cent_x,cent_y],[diam,diam])
+            elif type(shape) is QtGui.QGraphicsEllipseItem:
+                x, y, r = self.dialog.getValues()[:3]
+                cent_x, cent_y, diam = x-r, y-r, 2*r
+                try:
+                    if type(self.roi) is CircleROI:
+                        self.roi.setPos([cent_x,cent_y])
+                        self.roi.setSize([diam,diam])
+                    else:
+                        self.plotView.removeItem(self.roi)
+                        self.roi = CircleROI([cent_x,cent_y],[diam,diam], removable=True)
+                        self.plotView.addItem(self.roi)
+                except AttributeError:
+                    self.roi = CircleROI([cent_x,cent_y],[diam,diam], removable=True)
                     self.plotView.addItem(self.roi)
-            except AttributeError:
-                self.roi = CircleROI([cent_x,cent_y],[diam,diam])
-                self.plotView.addItem(self.roi)
-        elif type(shape) is QtGui.QGraphicsLineItem:
-            x1, y1, x2, y2 = self.dialog.getValues()[:4]
-            try:
-                if type(self.roi) is LineSegmentROI:
-                    self.roi.setPos([(x1,y1),(x2,y2)])
-                else:
-                    self.plotView.removeItem(self.roi)
-                    self.roi = LineSegmentROI([(x1,y1),(x2,y2)])
+            elif type(shape) is QtGui.QGraphicsLineItem:
+                x1, y1, x2, y2 = self.dialog.getValues()[:4]
+                try:
+                    if type(self.roi) is LineSegmentROI:
+                        self.roi.setPos([(x1,y1),(x2,y2)])
+                    else:
+                        self.plotView.removeItem(self.roi)
+                        self.roi = LineSegmentROI([(x1,y1),(x2,y2)], removable=True)
+                        self.plotView.addItem(self.roi)
+                except AttributeError:
+                    self.roi = LineSegmentROI([(x1,y1),(x2,y2)], removable=True)
                     self.plotView.addItem(self.roi)
-            except AttributeError:
-                self.roi = LineSegmentROI([(x1,y1),(x2,y2)])
-                self.plotView.addItem(self.roi)
-        self.roi.sigRegionChanged.connect(self.plotItem.updateWindows)
+            self.roi.sigRemoveRequested.connect(self.removeRoi)
+            self.plotRoiButton.setEnabled(True)
+            self.plotRoiButton.clicked.connect(self.plotROIHandler)
+            self.roi.sigRegionChanged.connect(self.plotItem.updateWindows)
+        else:
+            try:
+                self.plotView.removeItem(self.roi)
+                self.removeRoi()
+            except AttributeError as e:
+                raise
+
+    def plotROIHandler(self):
         self.plotItem.plotROI(self.roi)
+
+    def removeRoi(self):
+        self.plotView.removeItem(self.roi)
+        self.roi = None
+        self.plotRoiButton.setEnabled(False)
+        self.plotRoiButton.clicked.disconnect(self.plotROIHandler)
 
 class ShapeDialog(QtGui.QDialog):
 
@@ -614,8 +637,8 @@ class ShapeDialog(QtGui.QDialog):
 
         self.layout = QtGui.QGridLayout(self)
         self.colorButton = QtGui.QPushButton("Color")
-        self.roiButton = QtGui.QPushButton("Set RoI")
-        self.roiButton.clicked.connect(self.parent().setROI)
+        self.roiButton = QtGui.QCheckBox("Set RoI")
+        self.roiButton.toggled.connect(self.parent().setROI)
         self.buttons = QtGui.QDialogButtonBox(
             QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)

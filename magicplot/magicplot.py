@@ -78,7 +78,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.isGettingLevelsFromHist = False
 
         # Set initial splitter sizes
-        self.drawSplitter.setSizes([1,1000,1])
+        self.drawSplitter.setSizes([2,1000,1])
         self.analysisSplitter.setSizes([70,1])
         self.shapeDrawer.hide()
         self.histWidget.hide()
