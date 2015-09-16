@@ -602,6 +602,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             except AttributeError:
                 self.roi = LineSegmentROI([(x1,y1),(x2,y2)])
                 self.plotView.addItem(self.roi)
+        self.roi.sigRegionChanged.connect(self.plotItem.updateWindows)
+        self.plotItem.plotROI(self.roi)
 
 class ShapeDialog(QtGui.QDialog):
 

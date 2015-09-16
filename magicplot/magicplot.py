@@ -51,6 +51,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def __init__(self, parent=None):
         super(MagicPlot, self).__init__(parent)
+        self.windowPlots = []
         self.setupUi(self)
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
@@ -236,6 +237,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
                 dataItem = MagicPlotImageItem(image=args[0])
+                dataItem.sigImageChanged.connect(self.updateWindows)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
@@ -306,22 +308,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         levels = self.hist.getLevels()
         self.plotItem.setLevels(levels)
 
-    def plotROI(self):
-        if self.plotMode == 1:
-            logging.info('Doesnt work with 1D plots')
-        if self.plotMode == 2:
-            try:
-                roi = self.shapeDrawer.roi
-            except AttributeError:
-                logging.info('No roi')
-            img = self.plotItem
-            data = roi.getArrayRegion(self.data, img)
-            window = MagicPlot()
-            window.show()
-            window.plot(data)
-            plots.append(window)
-
-
 class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
     A class that defines 2D image data, wrapper around pyqtgraph.ImageItem()
@@ -330,6 +316,8 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
     def __init__(self, *args, **kwargs):
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
+        self.windows = []
+        self.sigImageChanged.connect(self.updateWindows)
 
     def setData(self, *args, **kwargs):
         """
@@ -338,8 +326,18 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         """
         self.setImage(*args, **kwargs)
 
-    def getImageItem(self):
-        return super(MagicPlotImageItem, self)
+    def plotROI(self, roi):
+        window = MagicPlot()
+        sliceData = roi.getArrayRegion(self.image, self)
+        plt = window.plot(sliceData)
+        window.show()
+        self.windows.append([window, plt, roi])
+
+    def updateWindows(self):
+        for i in self.windows:
+            window, plt, roi = i
+            sliceData = roi.getArrayRegion(self.image, self)
+            plt.setData(sliceData)
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
