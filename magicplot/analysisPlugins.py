@@ -5,54 +5,64 @@ class AnalysisPlugin(QtGui.QWidget):
     """
     Base class for analysis plugins to MagicPlot.
     """
+    sigSetInputs = QtCore.pyqtSignal(object)
+    sigSetOutputs = QtCore.pyqtSignal(object)
+    sigSetUserInputs = QtCore.pyqtSignal(object)
 
-    def __init__(self, outputs={}, inputs={}, userInputs={}):
+    def __init__(self, params={}, name='Plugin'):
         super(AnalysisPlugin, self).__init__()
-        self.inputs = inputs
-        self.outputs = outputs
-        self.userInputs = userInputs
+        self.params = params
+        self.name = name
 
-    def setInputs(self, inputs):
-        self.inputs = inputs
+    def setData(self, data):
+        self.data = data
 
-    def setOutputs(self, outputs):
-        self.output = outputs
+    def setParams(self):
+        for i in self.paramBoxList.keys():
+            self.params[i] = self.paramBoxList[i].value()
 
-    def setUserInputs(self, userInputs):
-        self.userInputs = userInputs
-
-    def run(self, inputs):
+    def run(self):
         """
-        Must take dict inputs and return dict outputs
+        Input: self.data is what is displayed in the MagicPlot window,
+            either (x,y) for 1D or array(N,N) for 2D
+
+        Output: user must return a dict of outputs, for example:
+
+            return {'out1': out1, 'out2': out2}
         """
         pass
 
     def generateUi(self):
         self.layout = QtGui.QGridLayout()
-        for i in self.inputs.keys():
-            label = QtGui.QLabel(i)
-            display = QtGui.QLabel(self.inputs[i])
-            self.layout.addWidget(label)
-            self.layout.addWidget(display)
-        for i in self.userInputs.keys():
+        self.paramBoxList = {}
+        for i in self.params.keys():
             label = QtGui.QLabel(i)
             box = QtGui.QDoubleSpinBox()
+            box.setValue(self.params[i])
+            box.valueChanged.connect(self.setParams)
+            self.paramBoxList[i] = box
             self.layout.addWidget(label)
             self.layout.addWidget(box)
-        for i in self.outputs.keys():
-            label = QtGui.QLabel(i)
-            display = QtGui.QLabel(self.outputs[i])
-            self.layout.addWidget(label)
-            self.layout.addWidget(display)
+        self.outputBox = QtGui.QTextEdit()
+        self.layout.addWidget(self.outputBox, 0, 1, 2*len(self.params), 1)
         self.setLayout(self.layout)
 
 
-class TestPlugin(AnalysisPlugin):
+class Average(AnalysisPlugin):
 
     def __init__(self):
-        outputs = {'Average':None}
-        inputs = {'data':None}
-        super(TestPlugin, self).__init__(outputs=outputs, inputs=inputs)
+        super(Average, self).__init__(params={'param1':0, 'param2':42},
+            name='Average')
 
-    def run(self, inputs):
-        return {'Average': numpy.average(inputs['data'])}
+    def run(self):
+        if len(self.data) != 2:
+            raise Exception('Only works with 1D plots')
+        return {'Average': numpy.average(self.data[1][self.params['param1']:self.params['param2']])}
+
+class ShowData(AnalysisPlugin):
+
+    def __init__(self):
+        super(ShowData, self).__init__(name='Data')
+
+    def run(self):
+        return {'Data': self.data}

@@ -59,7 +59,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.analysisPane = analysisPane_test.AnalysisPane(parent=self)
         self.analysisSplitter.addWidget(self.analysisPane)
         self.dataUpdateSignal1d.connect(self.analysisPane.updateData)
-        self.dataUpdateSignal1d.connect(self.analysisPane.region.setData)
+        self.dataUpdateSignal2d.connect(self.analysisPane.updateData)
 
         # Initialise HistogramLUTWidget
         hist = pyqtgraph.HistogramLUTWidget()
@@ -235,6 +235,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             self.dataUpdateSignal1d.emit(self.data)
 
 
+
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
@@ -244,6 +245,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.plot2d(dataItem)
                 self.data = dataItem.image
                 self.dataUpdateSignal2d.emit(self.data)
+
             else:
                 raise
 
@@ -260,27 +262,18 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
-        self.analysisPane.setView(self.plotView, self.plotItem)
         return dataItem
 
     def plot1d(self, dataItem):
-        # self.plotMode = 1
         self.plotView.addItem(dataItem)
-        #self.plotView.plotItem.plot(data)
-        #self.plotView.autoRange()
+        dataItem.sigPlotChanged.connect(lambda:
+            self.dataUpdateSignal1d.emit(dataItem.getData()))
 
     def plot2d(self, imageItem):
-        # self.plotMode=2
-        # self.plotItem.setImage(data, autoLevels=False)
-        # if self.isGettingLevelsFromHist:
-        #     self.plotItem.setImage(data, autoLevels=False)
-        #     self.plotItem.setLevels(self.hist.getLevels())
-        # else:
-        #     self.plotItem.setImage(data)
         self.plotView.addItem(imageItem)
+        imageItem.sigImageChanged.connect(lambda:
+            self.dataUpdateSignal2d.emit(imageItem.image))
         self.initHist(imageItem)
-        #self.plotView.autoRange()
-
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
