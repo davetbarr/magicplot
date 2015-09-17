@@ -4,6 +4,11 @@ import numpy
 class AnalysisPlugin(QtGui.QWidget):
     """
     Base class for analysis plugins to MagicPlot.
+
+    To create plugin, create class that inherits this class called
+    "Plugin", ie:
+        class Plugin(AnalysisPlugin)
+    and place in MagicPlot/plugins directory. See example plugins.
     """
     sigSetInputs = QtCore.pyqtSignal(object)
     sigSetOutputs = QtCore.pyqtSignal(object)
@@ -26,9 +31,7 @@ class AnalysisPlugin(QtGui.QWidget):
         Input: self.data is what is displayed in the MagicPlot window,
             either (x,y) for 1D or array(N,N) for 2D
 
-        Output: user must return a dict of outputs, for example:
-
-            return {'out1': out1, 'out2': out2}
+        Output: displayed in the output QTextBox:
         """
         pass
 
