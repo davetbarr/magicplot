@@ -12,6 +12,9 @@ import numpy
 import magicplot
 from scipy.stats import linregress
 
+# Get this files path so we can get plugin
+import os
+PATH = os.path.dirname(os.path.abspath(__file__))
 
 class AnalysisPane(QtGui.QTabWidget):
 
@@ -28,7 +31,7 @@ class AnalysisPane(QtGui.QTabWidget):
 
     def getPluginList(self):
         self.pluginList = []
-        path = os.path.abspath(os.path.join(os.curdir, '../plugins'))
+        path = os.path.abspath(os.path.join(PATH, '../plugins'))
         for i in os.listdir(path):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
