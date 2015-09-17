@@ -17,6 +17,19 @@ import logging
 warnings.filterwarnings('ignore')
 
 
+# set default colourmaps available
+pyqtgraph.graphicsItems.GradientEditorItem.Gradients = pyqtgraph.pgcollections.OrderedDict([
+    ('viridis', {'ticks': [(0.,  ( 68,   1,  84, 255)),
+                           (0.2, ( 65,  66, 134, 255)),
+                           (0.4, ( 42, 118, 142, 255)),
+                           (0.6, ( 32, 165, 133, 255)),
+                           (0.8, (112, 206,  86, 255)),
+                           (1.0, (241, 229,  28, 255))], 'mode':'rgb'}),
+    ('grey', {'ticks': [(0.0, (0, 0, 0, 255)),
+                        (1.0, (255, 255, 255, 255))], 'mode': 'rgb'}),
+        ])
+
+
 ############API STUFF##########
 
 plots = []
