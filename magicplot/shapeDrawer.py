@@ -11,6 +11,7 @@ from pyqtgraph import RectROI, CircleROI, LineSegmentROI
 import shapeHolder
 import numpy
 import logging
+
 class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     """
@@ -172,6 +173,16 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 # Rectangle drawing methods
 #############################
 
+    def addRect(self, x, y, xSize, ySize, color):
+        """
+        Used by MagicPlot API to draw rect from command line
+        """
+        self.shapes.append(QtGui.QGraphicsRectItem(
+        				QtCore.QRectF(x,y,xSize,ySize)))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
+        return self.shapes[-1]
+
     def drawRect(self):
         self.dialog = RectDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_rect1)
@@ -275,6 +286,16 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
 # Line drawing methods
 #############################
+
+    def addLine(self, x1, y1, x2, y2, color):
+        """
+        Used by MagicPlot API to draw line from command line
+        """
+        self.shapes.append(QtGui.QGraphicsLineItem(x1,y1,x2,y2))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
+        return self.shapes[-1]
+
     def drawLine(self):
         self.dialog = LineDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
@@ -366,6 +387,18 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.shapes.updateView()
 
 ########## Grid Drawing ##############
+
+    def addGrid(self, x, y, xSize, ySize, rows, cols, color):
+        """
+        Used by MagicPlot API to draw grid from command line
+        """
+        grid = Grid(QtCore.QRectF(
+                x,y,xSize,ySize), rows, cols)
+        grid.color = color
+        self.shapes.append(grid)
+        self.plotView.addItem(grid)
+        return grid
+
     # if size is 0, draw grid, else add grid
     def drawGrid(self):
         self.dialog = GridDialog(parent=self)
@@ -384,6 +417,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog.getValues()
         grid = Grid(QtCore.QRectF(
                 xPos,yPos,xSize,ySize),rows,cols)
+        grid.color = color
         self.shapes.append(grid)
         self.plotView.addItem(grid)
 
@@ -483,6 +517,14 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
 ########## Circle Drawing ###########
 
+    def addCirc(self, x, y, r, color):
+        circ = QtGui.QGraphicsEllipseItem(
+                        QtCore.QRectF(x-r, y-r, 2*r, 2*r))
+        self.shapes.append(circ)
+        circ.setPen(QtGui.QPen(color))
+        self.plotView.addItem(circ)
+        return circ
+        
     def drawCirc(self):
         self.dialog = CircDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_circ1)

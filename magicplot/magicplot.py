@@ -171,6 +171,35 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         for i in reversed(range(self.plotLayout.count())):
             self.plotLayout.itemAt(i).widget().setParent(None)
 
+    @property
+    def panBounds(self):
+        return self._panBounds
+
+    @panBounds.setter
+    def panBounds(self, bounds):
+        try:
+           self.viewBox.autoRange()
+           if bounds is True:
+               self._panBounds = True
+               rect = self.viewBox.viewRect()
+               self.viewBox.setLimits(xMin=rect.left(),
+                                       xMax=rect.right(),
+                                       yMin=rect.top(),
+                                       yMax=rect.bottom())
+           else:
+               self._panBounds = False
+               self.viewBox.setLimits(xMin=None,
+                                       xMax=None,
+                                       yMin=None,
+                                       yMax=None)
+        except AttributeError:
+           pass
+
+    def updatePanBounds(self):
+        if self.panBounds is True:
+            self.panBounds = False
+            self.panBounds = True
+
 # Mouse tracking on plot
 ##############################
 
@@ -252,8 +281,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             self.data = dataItem.getData()
             self.dataUpdateSignal1d.emit(self.data)
 
-
-
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
@@ -263,50 +290,21 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.plot2d(dataItem)
                 self.data = dataItem.image
                 self.dataUpdateSignal2d.emit(self.data)
-
             else:
                 raise
 
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
             self.panBounds = kwargs['panBounds']
-        else:
-            self.panBounds = False
 
         self.plotItem = dataItem
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.viewBox.autoRange()
         return dataItem
 
-    @property
-    def panBounds(self):
-        return self._panBounds
 
-    @panBounds.setter
-    def panBounds(self, bounds):
-        try:
-           self.viewBox.autoRange()
-           if bounds is True:
-               self._panBounds = True
-               rect = self.viewBox.viewRect()
-               self.viewBox.setLimits(xMin=rect.left(),
-                                       xMax=rect.right(),
-                                       yMin=rect.top(),
-                                       yMax=rect.bottom())
-           else:
-               self._panBounds = False
-               self.viewBox.setLimits(xMin=None,
-                                       xMax=None,
-                                       yMin=None,
-                                       yMax=None)
-        except AttributeError:
-           pass
-
-    def updatePanBounds(self):
-        if self.panBounds is True:
-            self.panBounds = False
-            self.panBounds = True
 
     def plot1d(self, dataItem):
         self.plotView.addItem(dataItem)
@@ -327,7 +325,81 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         data = 100*numpy.random.random(100)
         self.plot(data)
 
-#################################
+##########Shape Drawing API######################
+
+    def addRect(self, x, y, width, height, color='r'):
+        """
+        Add a rectangle to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of lower-left corner
+            y (float): y co-ordinate of lower-left corner
+            width (float): width of rectangle
+            height (float): height of rectangle
+            color (optional[str]): color of rectangle, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsRectItem - the rectangle
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        rect = self.shapeDrawer.addRect(x, y, width, height, color=qcolor)
+        return rect
+
+    def addLine(self, x1, y1, x2, y2, color='r'):
+        """
+        Add a line to the plot.
+
+        Parameters:
+            x1 (float): x co-ordinate of beginning of line
+            y1 (float): y co-ordinate of beginning of line
+            x2 (float): x co-ordinate of end of line
+            y2 (float): y co-ordinate of end of line
+            color (optional[str]): color of line, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsLineItem - the line
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        line = self.shapeDrawer.addLine(x1, y1, x2, y2, color=qcolor)
+        return line
+
+    def addGrid(self, x, y, width, height, rows, columns, color='r'):
+        """
+        Add a grid to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of lower-left corner
+            y (float): y co-ordinate of lower-left corner
+            width (float): width of grid
+            height (float): height of grid
+            rows (int): number of rows
+            columns (int): number of columns
+            color (optional[str]): color of line, see pyqtgraph.mkColor
+
+        Returns:
+            Grid
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        grid = self.shapeDrawer.addGrid(x, y, width, height, rows, columns,
+            color=qcolor)
+        return grid
+
+    def addCircle(self, x, y, r, color='r'):
+        """
+        Add a circle to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of circle center
+            y (float): y co-ordinate of circle center
+            r (float): radius of circle
+            color (optional[str]): color of circle, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsEllipseItem - the circle
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        circ = self.shapeDrawer.addCirc(x, y, r, color=qcolor)
+        return circ
 
     def initHist(self, imageItem):
         self.hist.setImageItem(imageItem)
