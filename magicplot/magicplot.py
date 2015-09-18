@@ -73,6 +73,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.analysisSplitter.addWidget(self.analysisPane)
         self.dataUpdateSignal1d.connect(self.analysisPane.updateData)
         self.dataUpdateSignal2d.connect(self.analysisPane.updateData)
+        self.dataUpdateSignal1d.connect(self.updatePanBounds)
+        self.dataUpdateSignal2d.connect(self.updatePanBounds)
 
         # Initialise HistogramLUTWidget
         hist = pyqtgraph.HistogramLUTWidget()
@@ -119,6 +121,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self._plotMode = 2
         self.set2dPlot()
         self.plotMode = 2
+
+        # defualt setting for locking viewBox to data
+        self.panBounds = False
 
 
 
@@ -252,7 +257,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
-                dataItem = MagicPlotImageItem(image=args[0])
+                dataItem = MagicPlotImageItem(*args, **kwargs)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
@@ -264,18 +269,44 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
-            if kwargs['panBounds'] is True:
-                rect = self.viewBox.viewRect()
-                self.viewBox.setLimits(xMin=rect.left(),
-                                    xMax=rect.right(),
-                                    yMin=rect.top(),
-                                    yMax=rect.bottom())
+            self.panBounds = kwargs['panBounds']
+        else:
+            self.panBounds = False
 
         self.plotItem = dataItem
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
         return dataItem
+
+    @property
+    def panBounds(self):
+        return self._panBounds
+
+    @panBounds.setter
+    def panBounds(self, bounds):
+        try:
+           self.viewBox.autoRange()
+           if bounds is True:
+               self._panBounds = True
+               rect = self.viewBox.viewRect()
+               self.viewBox.setLimits(xMin=rect.left(),
+                                       xMax=rect.right(),
+                                       yMin=rect.top(),
+                                       yMax=rect.bottom())
+           else:
+               self._panBounds = False
+               self.viewBox.setLimits(xMin=None,
+                                       xMax=None,
+                                       yMin=None,
+                                       yMax=None)
+        except AttributeError:
+           pass
+
+    def updatePanBounds(self):
+        if self.panBounds is True:
+            self.panBounds = False
+            self.panBounds = True
 
     def plot1d(self, dataItem):
         self.plotView.addItem(dataItem)
@@ -308,18 +339,21 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             logging.info('Empty ImageItem')
 
     def activateHistogram(self, checked):
-        if not checked:
-            self.hist.sigLevelsChanged.disconnect(self.histToggle.click)
-            levels = self.plotItem.getLevels()
-            self.plotItem.setOpts(autoLevels=False)
-            self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
-            self.hist.setLevels(levels[0], levels[1])
-        else:
-            self.hist.sigLevelsChanged.connect(self.histToggle.click)
-            self.plotItem.setOpts(autoLevels=True)
-            im = self.plotItem.image
-            self.plotItem.setLevels((im.min(), im.max()))
-            self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+        try:
+            if not checked:
+                self.hist.sigLevelsChanged.disconnect(self.histToggle.click)
+                levels = self.plotItem.getLevels()
+                self.plotItem.setOpts(autoLevels=False)
+                self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
+                self.hist.setLevels(levels[0], levels[1])
+            else:
+                self.hist.sigLevelsChanged.connect(self.histToggle.click)
+                self.plotItem.setOpts(autoLevels=True)
+                im = self.plotItem.image
+                self.plotItem.setLevels((im.min(), im.max()))
+                self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+        except TypeError:
+            pass
 
     def setLevelsFromHist(self):
         levels = self.hist.getLevels()
