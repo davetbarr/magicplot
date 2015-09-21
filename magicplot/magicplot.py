@@ -158,7 +158,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotView.addItem(self.plotItem)
         self.viewBox = self.plotView.getViewBox()
         # self.hist.setImageItem(self.plotItem)
-        self.viewBox.menu = self.showMenu
+        self.viewBox.menu.addMenu(self.showMenu)
 
     @property
     def plotMode(self):
