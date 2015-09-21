@@ -23,8 +23,5 @@ class Plugin(AnalysisPlugin):
         self.params['code'] = str(self.codeBox.toPlainText())
 
     def run(self):
-        try:
-            exec(self.params['code'])
-        except Exception as e:
-            print e
+        exec(self.params['code'])
         return output 
