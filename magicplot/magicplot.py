@@ -401,6 +401,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         circ = self.shapeDrawer.addCirc(x, y, r, color=qcolor)
         return circ
 
+############ Histogram ###############
+
     def initHist(self, imageItem):
         self.hist.setImageItem(imageItem)
         self.hist.sigLevelsChanged.connect(self.histToggle.click)

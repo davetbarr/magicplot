@@ -76,15 +76,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     def clearShapes(self):
         self.shapes.clearShapes()
 
-    def contextMenuEvent(self, event):
-        menu = QtGui.QMenu(self)
-        menu.addAction('Test')
-        index = self.shapeList.indexAt(event.pos())
-        print index.row()
-        action = menu.exec_(event.globalPos())
-
-
-
 ############ Dialog methods
 
     def openDialog(self, index):
@@ -98,11 +89,11 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog.applySig.connect(self.applyRectChanges)
             self.dialog.finished.connect(self.applyRectChanges)
         elif type(shape)==QtGui.QGraphicsLineItem:
-            self.dialog = LineDialog(shape, parent=self)
+            self.dialog = LineDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyLineChanges)
             self.dialog.finished.connect(self.applyLineChanges)
         elif type(shape)==QtGui.QGraphicsEllipseItem:
-            self.dialog = CircDialog(shape, parent=self)
+            self.dialog = CircDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyCircChanges)
             self.dialog.finished.connect(self.applyCircChanges)
 
@@ -278,11 +269,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
                     self.mouseClicked_rect2)
 
             self.shapes.updateView()
-
-    def drawRectFromRect(self, rect):
-        #self.shapes.append(QtGui.QGraphicsRectItem(rect))
-        #self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.blue))
-        self.plotView.addItem(rect)
 
 # Line drawing methods
 #############################
@@ -497,24 +483,6 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
             self.shapes.updateView()
 
-    def shapeCheck(self, event):
-        pass
-    #     pos = event.pos()
-    #     imgPos = self.plotItem.mapFromScene(pos)
-    #     index = 0
-    #     if self.isDrawingRect or self.isDrawingLine:
-    #         print "drawing, not registered click"
-    #         return None
-    #     for i in self.shapes:
-    #         if i.contains(imgPos):
-    #             print index
-    #             self.index = index
-    #             self.changeShapeSignal.emit()
-    #             #this is really bad, must be better way
-    #             break
-    #         else:
-    #             index += 1
-
 ########## Circle Drawing ###########
 
     def addCirc(self, x, y, r, color):
@@ -524,7 +492,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         circ.setPen(QtGui.QPen(color))
         self.plotView.addItem(circ)
         return circ
-        
+
     def drawCirc(self):
         self.dialog = CircDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_circ1)
@@ -1062,3 +1030,12 @@ class ShapeList(QtGui.QListView):
             self.delKeySig.emit(self.currentIndex())
         else:
             pass
+
+    def contextMenuEvent(self, event):
+        index = self.indexAt(event.pos())
+        menu = QtGui.QMenu(self)
+        delete = QtGui.QAction('Delete shape', self)
+        delete.triggered.connect(
+            lambda: self.parent().shapes.removeShape(index))
+        menu.addAction(delete)
+        action = menu.exec_(event.globalPos())
