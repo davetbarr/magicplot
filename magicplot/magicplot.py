@@ -77,15 +77,27 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.dataUpdateSignal2d.connect(self.updatePanBounds)
 
         # Initialise HistogramLUTWidget
+        self.histWidget = QtGui.QWidget()
         hist = pyqtgraph.HistogramLUTWidget()
-        self.histToggle = QtGui.QCheckBox('Auto Levels')
-        self.histToggle.setChecked(True)
-        self.histToggle.toggled.connect(self.activateHistogram)
+        self.histWidget.maxLevelBox = QtGui.QDoubleSpinBox()
+        self.histWidget.maxLevelBox.valueChanged.connect(self.setHistFromBoxes)
+        self.histWidget.minLevelBox = QtGui.QDoubleSpinBox()
+        self.histWidget.minLevelBox.valueChanged.connect(self.setHistFromBoxes)
+        self.histWidget.maxLevelBox.setRange(0,10000)
+        self.histWidget.minLevelBox.setRange(0,10000)
+        self.histWidget.histToggle = QtGui.QCheckBox('Auto Levels')
+        self.histWidget.histToggle.setChecked(True)
+        self.histWidget.histToggle.toggled.connect(self.activateHistogram)
         self.hist = hist.item
+        boxLayout = QtGui.QGridLayout()
+        boxLayout.addWidget(QtGui.QLabel('Max'), 0, 0)
+        boxLayout.addWidget(self.histWidget.maxLevelBox, 0, 1)
+        boxLayout.addWidget(QtGui.QLabel('Min'), 1, 0)
+        boxLayout.addWidget(self.histWidget.minLevelBox, 1, 1)
         histLayout = QtGui.QVBoxLayout()
         histLayout.addWidget(hist)
-        histLayout.addWidget(self.histToggle)
-        self.histWidget = QtGui.QWidget()
+        histLayout.addLayout(boxLayout)
+        histLayout.addWidget(self.histWidget.histToggle)
         self.histWidget.setLayout(histLayout)
         self.drawSplitter.insertWidget(0, self.histWidget)
 
@@ -297,11 +309,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         if 'panBounds' in kwargs.keys():
             self.panBounds = kwargs['panBounds']
 
-        self.plotItem = dataItem
-        self.plotItem.scene().sigMouseMoved.connect(
-                self.mousePosMoved)
-        self.shapeDrawer.setView(self.plotView, self.plotItem)
-        self.viewBox.autoRange()
         return dataItem
 
 
@@ -310,12 +317,22 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotView.addItem(dataItem)
         dataItem.sigPlotChanged.connect(lambda:
             self.dataUpdateSignal1d.emit(dataItem.getData()))
+        self.plotItem = dataItem
+        self.plotItem.scene().sigMouseMoved.connect(
+                self.mousePosMoved)
+        self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.viewBox.autoRange()
 
     def plot2d(self, imageItem):
         self.plotView.addItem(imageItem)
         imageItem.sigImageChanged.connect(lambda:
             self.dataUpdateSignal2d.emit(imageItem.image))
+        self.plotItem = imageItem
         self.initHist(imageItem)
+        self.plotItem.scene().sigMouseMoved.connect(
+                self.mousePosMoved)
+        self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.viewBox.autoRange()
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
@@ -405,29 +422,44 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     def initHist(self, imageItem):
         self.hist.setImageItem(imageItem)
-        self.hist.sigLevelsChanged.connect(self.histToggle.click)
+        self.hist.sigLevelsChanged.connect(self.histWidget.histToggle.click)
         levels = imageItem.getLevels()
         try:
             self.hist.setLevels(levels[0], levels[1])
+            self.histWidget.maxLevelBox.setValue(levels[1])
+            self.histWidget.minLevelBox.setValue(levels[0])
         except TypeError:
             logging.info('Empty ImageItem')
 
     def activateHistogram(self, checked):
         try:
             if not checked:
-                self.hist.sigLevelsChanged.disconnect(self.histToggle.click)
+                self.hist.sigLevelsChanged.disconnect(
+                    self.histWidget.histToggle.click)
                 levels = self.plotItem.getLevels()
                 self.plotItem.setOpts(autoLevels=False)
                 self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
+                self.hist.sigLevelsChanged.connect(self.setLevelBoxes)
                 self.hist.setLevels(levels[0], levels[1])
             else:
-                self.hist.sigLevelsChanged.connect(self.histToggle.click)
+                self.hist.sigLevelsChanged.connect(
+                    self.histWidget.histToggle.click)
                 self.plotItem.setOpts(autoLevels=True)
                 im = self.plotItem.image
                 self.plotItem.setLevels((im.min(), im.max()))
                 self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
         except TypeError:
             pass
+
+    def setLevelBoxes(self):
+        levels = self.hist.getLevels()
+        self.histWidget.maxLevelBox.setValue(levels[1])
+        self.histWidget.minLevelBox.setValue(levels[0])
+
+    def setHistFromBoxes(self):
+        _max, _min = self.histWidget.maxLevelBox.value(), \
+            self.histWidget.minLevelBox.value()
+        self.hist.setLevels(_min, _max)
 
     def setLevelsFromHist(self):
         levels = self.hist.getLevels()
