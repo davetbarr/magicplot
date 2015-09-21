@@ -158,7 +158,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotView.addItem(self.plotItem)
         self.viewBox = self.plotView.getViewBox()
         # self.hist.setImageItem(self.plotItem)
-        self.viewBox.menu.addMenu(self.showMenu)
+        self.viewBox.menu = self.showMenu
 
     @property
     def plotMode(self):
@@ -314,6 +314,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
 
     def plot1d(self, dataItem):
+        """
+        Add a MagicPlotDataItem to the 1D plot.
+
+        Parameters:
+            dataItem (MagicPlotDataItem): data item containing data to plot,
+                returned by MagicPlot.plot() or MagicPlot.getDataItem()
+        """
         self.plotView.addItem(dataItem)
         dataItem.sigPlotChanged.connect(lambda:
             self.dataUpdateSignal1d.emit(dataItem.getData()))
@@ -324,6 +331,16 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.viewBox.autoRange()
 
     def plot2d(self, imageItem):
+        """
+        Add a MagicPlotImageItem to the 2D plot.
+
+        Only 1 ImageItem can be added at a time, so this overwrites whatever
+        is already plotted.
+
+        Parameters:
+            imageItem (MagicPlotImageItem): image item containing data to plot,
+                returned by MagicPlot.plot() or MagicPlot.getImageItem()
+        """
         self.plotView.addItem(imageItem)
         imageItem.sigImageChanged.connect(lambda:
             self.dataUpdateSignal2d.emit(imageItem.image))
@@ -421,6 +438,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 ############ Histogram ###############
 
     def initHist(self, imageItem):
+        """
+        Initialise the histogram to control the levels of 2D plots.
+
+        Parameters:
+            imageItem (MagicPlotImageItem): the image item connected to
+                the histogram
+        """
         self.hist.setImageItem(imageItem)
         self.hist.sigLevelsChanged.connect(self.histWidget.histToggle.click)
         levels = imageItem.getLevels()
@@ -432,6 +456,15 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             logging.info('Empty ImageItem')
 
     def activateHistogram(self, checked):
+        """
+        Handles the "AutoLevels" checkbox below the histogram.
+
+        When unchecked, the histogram will control the levels of the image,
+        when checked image will use autoLevels=True
+
+        Parameters:
+            checked (bool): True if checkbox is checked, otherwise false
+        """
         try:
             if not checked:
                 self.hist.sigLevelsChanged.disconnect(
@@ -442,26 +475,37 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.hist.sigLevelsChanged.connect(self.setLevelBoxes)
                 self.hist.setLevels(levels[0], levels[1])
             else:
-                self.hist.sigLevelsChanged.connect(
-                    self.histWidget.histToggle.click)
                 self.plotItem.setOpts(autoLevels=True)
                 im = self.plotItem.image
                 self.plotItem.setLevels((im.min(), im.max()))
                 self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+                self.hist.setLevels(im.min(), im.max())
+                self.hist.sigLevelsChanged.connect(
+                    self.histWidget.histToggle.click)
         except TypeError:
-            pass
+            raise
 
     def setLevelBoxes(self):
+        """
+        Set the "Max" and "Min" boxes below the histogram to the levels
+        that the histogram is set to.
+        """
         levels = self.hist.getLevels()
         self.histWidget.maxLevelBox.setValue(levels[1])
         self.histWidget.minLevelBox.setValue(levels[0])
 
     def setHistFromBoxes(self):
+        """
+        Set the histogram levels from the "Max" and "Min" boxes
+        """
         _max, _min = self.histWidget.maxLevelBox.value(), \
             self.histWidget.minLevelBox.value()
         self.hist.setLevels(_min, _max)
 
     def setLevelsFromHist(self):
+        """
+        Set the levels of the image from the histogram
+        """
         levels = self.hist.getLevels()
         self.plotItem.setLevels(levels)
 
@@ -484,6 +528,12 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         self.setImage(*args, **kwargs)
 
     def plotROI(self, roi):
+        """
+        Plot the current region of interest in a new MagicPlot window.
+
+        Parameters:
+            roi (pyqtgraph.ROI): Region of Interest to use for plotting
+        """
         window = MagicPlot()
         sliceData = roi.getArrayRegion(self.image, self)
         plt = window.plot(sliceData)
@@ -491,10 +541,17 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         self.windows.append([window, plt, roi])
 
     def updateWindows(self):
+        """
+        Update the RoI plots
+        """
         for i in self.windows:
-            window, plt, roi = i
-            sliceData = roi.getArrayRegion(self.image, self)
-            plt.setData(sliceData)
+            try:
+                window, plt, roi = i
+                sliceData = roi.getArrayRegion(self.image, self)
+                plt.setData(sliceData)
+            except:
+                logging.debug("RoI doesn't exist, removing window from list")
+                self.windows.remove(i)
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """

@@ -79,6 +79,12 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 ############ Dialog methods
 
     def openDialog(self, index):
+        """
+        Opens shape dialogs to edit shapes.
+
+        Parameters:
+            index (QtCore.QModelIndex): index of the shape clicked
+        """
         shape = self.shapes[index.row()]
         if type(shape)==Grid:
             self.dialog = GridDialog(shape=shape, parent=self)
@@ -98,6 +104,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog.finished.connect(self.applyCircChanges)
 
     def applyGridChanges(self, *args):
+        """
+        Apply changes to a Grid when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -119,6 +132,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.update()
 
     def applyRectChanges(self, *args):
+        """
+        Apply changes to a rect when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -135,6 +155,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.setPen(QtGui.QPen(color))
 
     def applyLineChanges(self, *args):
+        """
+        Apply changes to a line when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -149,6 +176,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.setPen(QtGui.QPen(color))
 
     def applyCircChanges(self, *args):
+        """
+        Apply changes to a circle when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -639,7 +673,11 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.plotRoiButton.clicked.disconnect(self.plotROIHandler)
 
 class ShapeDialog(QtGui.QDialog):
+    """
+    The base class of all shape dialogs.
+    """
 
+    # signal to emit to apply changes
     applySig = QtCore.pyqtSignal()
 
     def __init__(self, shape=None, parent=None, modal=False):
