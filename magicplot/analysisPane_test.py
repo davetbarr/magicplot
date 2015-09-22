@@ -43,7 +43,7 @@ class AnalysisPane(QtGui.QWidget):
         for i in os.listdir(path):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
-                exec(f)
+                exec(f, globals())
                 self.pluginList.append(Plugin())
 
     def updateData(self, data):
