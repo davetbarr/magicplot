@@ -27,7 +27,12 @@ pyqtgraph.graphicsItems.GradientEditorItem.Gradients = pyqtgraph.pgcollections.O
                            (1.0, (241, 229,  28, 255))], 'mode':'rgb'}),
     ('grey', {'ticks': [(0.0, (0, 0, 0, 255)),
                         (1.0, (255, 255, 255, 255))], 'mode': 'rgb'}),
+    ('coolwarm', {'ticks': [(0.0, ( 59,  76, 192)),
+                            (0.5, (220, 220, 220)),
+                            (1.0, (180, 4, 38))], 'mode': 'rgb'}),
         ])
+
+
 
 
 ############API STUFF##########
