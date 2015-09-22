@@ -149,6 +149,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotItem = self.plotView.plotItem
         self.viewBox = self.plotView.getViewBox()
         self.viewBox.menu.addMenu(self.showMenu)
+        self.analysisPane.initRegion(self.plotView)
 
     def set2dPlot(self):
         print("Set 2d Plot")

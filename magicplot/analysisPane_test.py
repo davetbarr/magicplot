@@ -1,3 +1,4 @@
+from __future__ import division
 import sys
 import os
 import importlib
@@ -16,7 +17,7 @@ from scipy.stats import linregress
 import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 
-class AnalysisPane(QtGui.QTabWidget):
+class AnalysisPane(QtGui.QWidget):
 
     def __init__(self, parent=None, view=None, item=None):
         super(AnalysisPane, self).__init__(parent)
@@ -25,9 +26,16 @@ class AnalysisPane(QtGui.QTabWidget):
         self.data = None
 
     def setupUi(self):
+        self.layout = QtGui.QVBoxLayout()
+        self.regionCheckbox = QtGui.QCheckBox('Region of Interest')
+        self.regionCheckbox.toggled.connect(self.toggleRegion)
+        self.tabWidget = QtGui.QTabWidget()
         for i in self.pluginList:
             i.generateUi()
-            self.addTab(i, i.name)
+            self.tabWidget.addTab(i, i.name)
+        self.layout.addWidget(self.regionCheckbox)
+        self.layout.addWidget(self.tabWidget)
+        self.setLayout(self.layout)
 
     def getPluginList(self):
         self.pluginList = []
@@ -39,8 +47,15 @@ class AnalysisPane(QtGui.QTabWidget):
                 self.pluginList.append(Plugin())
 
     def updateData(self, data):
+        if data is not None:
+            self.data = data
+        if self.region.isVisible():
+            pluginData = self.region.setData(self.data)
+            self.region.setBounds((self.data[0][0], self.data[0][-1]))
+        else:
+            pluginData = self.data
         for i in self.pluginList:
-            i.setData(data)
+            i.setData(pluginData)
         self.runPlugins()
 
     def runPlugins(self):
@@ -51,3 +66,40 @@ class AnalysisPane(QtGui.QTabWidget):
                 i.outputBox.setText(str(output))
             except Exception as e:
                 i.outputBox.setText(e.message)
+
+    def toggleRegion(self, checked):
+        # make sure we're in 1D plotMode!
+        if self.parent().parent().plotMode == 1:
+            if checked:
+                self.region.setVisible(True)
+                self.region.setRegion(
+                        (self.data[0][0], self.data[0][-1]))
+                self.region.setBounds(
+                        (self.data[0][0], self.data[0][-1]))
+                self.region.sigRegionChanged.connect(
+                        lambda: self.updateData(None))
+                self.updateData(None)
+            else:
+                self.region.setVisible(False)
+                self.region.sigRegionChanged.disconnect()
+                self.updateData(None)
+                      
+        else:
+            pass
+    
+    def initRegion(self, view):
+        self.region = Region()
+        self.region.setVisible(False)
+        view.addItem(self.region)
+
+class Region(pyqtgraph.LinearRegionItem):
+
+    def __init__(self):
+        super(Region, self).__init__()
+
+    def setData(self, data):
+        x1, x2 = self.getRegion()
+        index1 = int((x1 - data[0][0])/data[0][-1] * len(data[0]))
+        index2 = int((x2 - data[0][0])/data[0][-1] * len(data[0]))
+        self.data = [data[0][index1:index2], data[1][index1:index2]]
+        return self.data
