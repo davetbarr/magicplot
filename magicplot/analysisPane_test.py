@@ -11,7 +11,7 @@ from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
 import magicplot
-from scipy.stats import linregress
+import logging
 
 # Get this files path so we can get plugin
 import os
@@ -49,11 +49,15 @@ class AnalysisPane(QtGui.QWidget):
     def updateData(self, data):
         if data is not None:
             self.data = data
-        if self.region.isVisible():
-            pluginData = self.region.setData(self.data)
-            self.region.setBounds((self.data[0][0], self.data[0][-1]))
-        else:
+        try:
+            if self.region.isVisible():
+                pluginData = self.region.setData(self.data)
+                self.region.setBounds((self.data[0][0], self.data[0][-1]))
+            else:
+                pluginData = self.data
+        except AttributeError:
             pluginData = self.data
+            logging.info('No 1D region - probably a 2d Plot')
         for i in self.pluginList:
             i.setData(pluginData)
         self.runPlugins()
