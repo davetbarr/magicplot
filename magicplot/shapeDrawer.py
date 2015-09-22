@@ -11,6 +11,7 @@ from pyqtgraph import RectROI, CircleROI, LineSegmentROI
 import shapeHolder
 import numpy
 import logging
+
 class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
     """
@@ -75,18 +76,15 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     def clearShapes(self):
         self.shapes.clearShapes()
 
-    def contextMenuEvent(self, event):
-        menu = QtGui.QMenu(self)
-        menu.addAction('Test')
-        index = self.shapeList.indexAt(event.pos())
-        print index.row()
-        action = menu.exec_(event.globalPos())
-
-
-
 ############ Dialog methods
 
     def openDialog(self, index):
+        """
+        Opens shape dialogs to edit shapes.
+
+        Parameters:
+            index (QtCore.QModelIndex): index of the shape clicked
+        """
         shape = self.shapes[index.row()]
         if type(shape)==Grid:
             self.dialog = GridDialog(shape=shape, parent=self)
@@ -97,15 +95,22 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog.applySig.connect(self.applyRectChanges)
             self.dialog.finished.connect(self.applyRectChanges)
         elif type(shape)==QtGui.QGraphicsLineItem:
-            self.dialog = LineDialog(shape, parent=self)
+            self.dialog = LineDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyLineChanges)
             self.dialog.finished.connect(self.applyLineChanges)
         elif type(shape)==QtGui.QGraphicsEllipseItem:
-            self.dialog = CircDialog(shape, parent=self)
+            self.dialog = CircDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyCircChanges)
             self.dialog.finished.connect(self.applyCircChanges)
 
     def applyGridChanges(self, *args):
+        """
+        Apply changes to a Grid when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -127,6 +132,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.update()
 
     def applyRectChanges(self, *args):
+        """
+        Apply changes to a rect when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -143,6 +155,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.setPen(QtGui.QPen(color))
 
     def applyLineChanges(self, *args):
+        """
+        Apply changes to a line when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -157,6 +176,13 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.dialog.shape.setPen(QtGui.QPen(color))
 
     def applyCircChanges(self, *args):
+        """
+        Apply changes to a circle when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
         try:
             code = args[0]
         except IndexError:
@@ -171,6 +197,16 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
 # Rectangle drawing methods
 #############################
+
+    def addRect(self, x, y, xSize, ySize, color):
+        """
+        Used by MagicPlot API to draw rect from command line
+        """
+        self.shapes.append(QtGui.QGraphicsRectItem(
+        				QtCore.QRectF(x,y,xSize,ySize)))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
+        return self.shapes[-1]
 
     def drawRect(self):
         self.dialog = RectDialog(parent=self)
@@ -268,13 +304,18 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
             self.shapes.updateView()
 
-    def drawRectFromRect(self, rect):
-        #self.shapes.append(QtGui.QGraphicsRectItem(rect))
-        #self.shapes[-1].setPen(QtGui.QPen(QtCore.Qt.blue))
-        self.plotView.addItem(rect)
-
 # Line drawing methods
 #############################
+
+    def addLine(self, x1, y1, x2, y2, color):
+        """
+        Used by MagicPlot API to draw line from command line
+        """
+        self.shapes.append(QtGui.QGraphicsLineItem(x1,y1,x2,y2))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
+        return self.shapes[-1]
+
     def drawLine(self):
         self.dialog = LineDialog(parent=self)
         self.scene.sigMouseClicked.connect(self.mouseClicked_line1)
@@ -366,6 +407,18 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.shapes.updateView()
 
 ########## Grid Drawing ##############
+
+    def addGrid(self, x, y, xSize, ySize, rows, cols, color):
+        """
+        Used by MagicPlot API to draw grid from command line
+        """
+        grid = Grid(QtCore.QRectF(
+                x,y,xSize,ySize), rows, cols)
+        grid.color = color
+        self.shapes.append(grid)
+        self.plotView.addItem(grid)
+        return grid
+
     # if size is 0, draw grid, else add grid
     def drawGrid(self):
         self.dialog = GridDialog(parent=self)
@@ -384,6 +437,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog.getValues()
         grid = Grid(QtCore.QRectF(
                 xPos,yPos,xSize,ySize),rows,cols)
+        grid.color = color
         self.shapes.append(grid)
         self.plotView.addItem(grid)
 
@@ -463,25 +517,15 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
             self.shapes.updateView()
 
-    def shapeCheck(self, event):
-        pass
-    #     pos = event.pos()
-    #     imgPos = self.plotItem.mapFromScene(pos)
-    #     index = 0
-    #     if self.isDrawingRect or self.isDrawingLine:
-    #         print "drawing, not registered click"
-    #         return None
-    #     for i in self.shapes:
-    #         if i.contains(imgPos):
-    #             print index
-    #             self.index = index
-    #             self.changeShapeSignal.emit()
-    #             #this is really bad, must be better way
-    #             break
-    #         else:
-    #             index += 1
-
 ########## Circle Drawing ###########
+
+    def addCirc(self, x, y, r, color):
+        circ = QtGui.QGraphicsEllipseItem(
+                        QtCore.QRectF(x-r, y-r, 2*r, 2*r))
+        self.shapes.append(circ)
+        circ.setPen(QtGui.QPen(color))
+        self.plotView.addItem(circ)
+        return circ
 
     def drawCirc(self):
         self.dialog = CircDialog(parent=self)
@@ -629,7 +673,11 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.plotRoiButton.clicked.disconnect(self.plotROIHandler)
 
 class ShapeDialog(QtGui.QDialog):
+    """
+    The base class of all shape dialogs.
+    """
 
+    # signal to emit to apply changes
     applySig = QtCore.pyqtSignal()
 
     def __init__(self, shape=None, parent=None, modal=False):
@@ -1020,3 +1068,12 @@ class ShapeList(QtGui.QListView):
             self.delKeySig.emit(self.currentIndex())
         else:
             pass
+
+    def contextMenuEvent(self, event):
+        index = self.indexAt(event.pos())
+        menu = QtGui.QMenu(self)
+        delete = QtGui.QAction('Delete shape', self)
+        delete.triggered.connect(
+            lambda: self.parent().shapes.removeShape(index))
+        menu.addAction(delete)
+        action = menu.exec_(event.globalPos())

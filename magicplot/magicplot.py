@@ -6,7 +6,7 @@ import os
 import magicPlot_ui
 import shapeHolder
 import shapeDrawer
-import analysisPane
+import analysisPane_test
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
@@ -65,7 +65,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     """
     A MagicPlot widget that can be run in a window or embedded.
     """
-    dataUpdateSignal = QtCore.pyqtSignal(object)
+    dataUpdateSignal1d = QtCore.pyqtSignal(object)
+    dataUpdateSignal2d = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super(MagicPlot, self).__init__(parent)
@@ -73,21 +74,35 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.setupUi(self)
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
-        self.analysisPane = analysisPane.AnalysisPane(parent=self)
+        self.analysisPane = analysisPane_test.AnalysisPane(parent=self)
         self.analysisSplitter.addWidget(self.analysisPane)
-        self.dataUpdateSignal.connect(self.analysisPane.updateData)
-        self.dataUpdateSignal.connect(self.analysisPane.region.setData)
+        self.dataUpdateSignal1d.connect(self.analysisPane.updateData)
+        self.dataUpdateSignal2d.connect(self.analysisPane.updateData)
+        self.dataUpdateSignal1d.connect(self.updatePanBounds)
+        self.dataUpdateSignal2d.connect(self.updatePanBounds)
 
         # Initialise HistogramLUTWidget
+        self.histWidget = QtGui.QWidget()
         hist = pyqtgraph.HistogramLUTWidget()
-        self.histToggle = QtGui.QCheckBox('Auto Levels')
-        self.histToggle.setChecked(True)
-        self.histToggle.toggled.connect(self.activateHistogram)
+        self.histWidget.maxLevelBox = QtGui.QDoubleSpinBox()
+        self.histWidget.maxLevelBox.valueChanged.connect(self.setHistFromBoxes)
+        self.histWidget.minLevelBox = QtGui.QDoubleSpinBox()
+        self.histWidget.minLevelBox.valueChanged.connect(self.setHistFromBoxes)
+        self.histWidget.maxLevelBox.setRange(0,10000)
+        self.histWidget.minLevelBox.setRange(0,10000)
+        self.histWidget.histToggle = QtGui.QCheckBox('Auto Levels')
+        self.histWidget.histToggle.setChecked(True)
+        self.histWidget.histToggle.toggled.connect(self.activateHistogram)
         self.hist = hist.item
+        boxLayout = QtGui.QGridLayout()
+        boxLayout.addWidget(QtGui.QLabel('Max'), 0, 0)
+        boxLayout.addWidget(self.histWidget.maxLevelBox, 0, 1)
+        boxLayout.addWidget(QtGui.QLabel('Min'), 1, 0)
+        boxLayout.addWidget(self.histWidget.minLevelBox, 1, 1)
         histLayout = QtGui.QVBoxLayout()
         histLayout.addWidget(hist)
-        histLayout.addWidget(self.histToggle)
-        self.histWidget = QtGui.QWidget()
+        histLayout.addLayout(boxLayout)
+        histLayout.addWidget(self.histWidget.histToggle)
         self.histWidget.setLayout(histLayout)
         self.drawSplitter.insertWidget(0, self.histWidget)
 
@@ -124,6 +139,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.set2dPlot()
         self.plotMode = 2
 
+        # defualt setting for locking viewBox to data
+        self.panBounds = False
+
 
 
  # Methods to setup plot areaD
@@ -136,6 +154,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotItem = self.plotView.plotItem
         self.viewBox = self.plotView.getViewBox()
         self.viewBox.menu.addMenu(self.showMenu)
+        self.analysisPane.initRegion(self.plotView)
 
     def set2dPlot(self):
         print("Set 2d Plot")
@@ -169,6 +188,35 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def deletePlotItem(self):
         for i in reversed(range(self.plotLayout.count())):
             self.plotLayout.itemAt(i).widget().setParent(None)
+
+    @property
+    def panBounds(self):
+        return self._panBounds
+
+    @panBounds.setter
+    def panBounds(self, bounds):
+        try:
+           self.viewBox.autoRange()
+           if bounds is True:
+               self._panBounds = True
+               rect = self.viewBox.viewRect()
+               self.viewBox.setLimits(xMin=rect.left(),
+                                       xMax=rect.right(),
+                                       yMin=rect.top(),
+                                       yMax=rect.bottom())
+           else:
+               self._panBounds = False
+               self.viewBox.setLimits(xMin=None,
+                                       xMax=None,
+                                       yMin=None,
+                                       yMax=None)
+        except AttributeError:
+           pass
+
+    def updatePanBounds(self):
+        if self.panBounds is True:
+            self.panBounds = False
+            self.panBounds = True
 
 # Mouse tracking on plot
 ##############################
@@ -249,54 +297,65 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.plotMode = 1
             self.plot1d(dataItem)
             self.data = dataItem.getData()
-
+            self.dataUpdateSignal1d.emit(self.data)
 
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
-                dataItem = MagicPlotImageItem(image=args[0])
+                dataItem = MagicPlotImageItem(*args, **kwargs)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
                 self.data = dataItem.image
+                self.dataUpdateSignal2d.emit(self.data)
             else:
                 raise
 
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
-            if kwargs['panBounds'] is True:
-                rect = self.viewBox.viewRect()
-                self.viewBox.setLimits(xMin=rect.left(),
-                                    xMax=rect.right(),
-                                    yMin=rect.top(),
-                                    yMax=rect.bottom())
+            self.panBounds = kwargs['panBounds']
 
+        return dataItem
+
+
+
+    def plot1d(self, dataItem):
+        """
+        Add a MagicPlotDataItem to the 1D plot.
+
+        Parameters:
+            dataItem (MagicPlotDataItem): data item containing data to plot,
+                returned by MagicPlot.plot() or MagicPlot.getDataItem()
+        """
+        self.plotView.addItem(dataItem)
+        dataItem.sigPlotChanged.connect(lambda:
+            self.dataUpdateSignal1d.emit(dataItem.getData()))
         self.plotItem = dataItem
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
-        self.analysisPane.setView(self.plotView, self.plotItem)
-        self.dataUpdateSignal.emit(self.data)
-        return dataItem
-
-    def plot1d(self, dataItem):
-        # self.plotMode = 1
-        self.plotView.addItem(dataItem)
-        #self.plotView.plotItem.plot(data)
-        #self.plotView.autoRange()
+        self.viewBox.autoRange()
 
     def plot2d(self, imageItem):
-        # self.plotMode=2
-        # self.plotItem.setImage(data, autoLevels=False)
-        # if self.isGettingLevelsFromHist:
-        #     self.plotItem.setImage(data, autoLevels=False)
-        #     self.plotItem.setLevels(self.hist.getLevels())
-        # else:
-        #     self.plotItem.setImage(data)
-        self.plotView.addItem(imageItem)
-        self.initHist(imageItem)
-        #self.plotView.autoRange()
+        """
+        Add a MagicPlotImageItem to the 2D plot.
 
+        Only 1 ImageItem can be added at a time, so this overwrites whatever
+        is already plotted.
+
+        Parameters:
+            imageItem (MagicPlotImageItem): image item containing data to plot,
+                returned by MagicPlot.plot() or MagicPlot.getImageItem()
+        """
+        self.plotView.addItem(imageItem)
+        imageItem.sigImageChanged.connect(lambda:
+            self.dataUpdateSignal2d.emit(imageItem.image))
+        self.plotItem = imageItem
+        self.initHist(imageItem)
+        self.plotItem.scene().sigMouseMoved.connect(
+                self.mousePosMoved)
+        self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.viewBox.autoRange()
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
@@ -306,32 +365,153 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         data = 100*numpy.random.random(100)
         self.plot(data)
 
-#################################
+##########Shape Drawing API######################
+
+    def addRect(self, x, y, width, height, color='r'):
+        """
+        Add a rectangle to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of lower-left corner
+            y (float): y co-ordinate of lower-left corner
+            width (float): width of rectangle
+            height (float): height of rectangle
+            color (optional[str]): color of rectangle, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsRectItem - the rectangle
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        rect = self.shapeDrawer.addRect(x, y, width, height, color=qcolor)
+        return rect
+
+    def addLine(self, x1, y1, x2, y2, color='r'):
+        """
+        Add a line to the plot.
+
+        Parameters:
+            x1 (float): x co-ordinate of beginning of line
+            y1 (float): y co-ordinate of beginning of line
+            x2 (float): x co-ordinate of end of line
+            y2 (float): y co-ordinate of end of line
+            color (optional[str]): color of line, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsLineItem - the line
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        line = self.shapeDrawer.addLine(x1, y1, x2, y2, color=qcolor)
+        return line
+
+    def addGrid(self, x, y, width, height, rows, columns, color='r'):
+        """
+        Add a grid to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of lower-left corner
+            y (float): y co-ordinate of lower-left corner
+            width (float): width of grid
+            height (float): height of grid
+            rows (int): number of rows
+            columns (int): number of columns
+            color (optional[str]): color of line, see pyqtgraph.mkColor
+
+        Returns:
+            Grid
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        grid = self.shapeDrawer.addGrid(x, y, width, height, rows, columns,
+            color=qcolor)
+        return grid
+
+    def addCircle(self, x, y, r, color='r'):
+        """
+        Add a circle to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of circle center
+            y (float): y co-ordinate of circle center
+            r (float): radius of circle
+            color (optional[str]): color of circle, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsEllipseItem - the circle
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        circ = self.shapeDrawer.addCirc(x, y, r, color=qcolor)
+        return circ
+
+############ Histogram ###############
 
     def initHist(self, imageItem):
+        """
+        Initialise the histogram to control the levels of 2D plots.
+
+        Parameters:
+            imageItem (MagicPlotImageItem): the image item connected to
+                the histogram
+        """
         self.hist.setImageItem(imageItem)
-        self.hist.sigLevelsChanged.connect(self.histToggle.click)
+        self.hist.sigLevelsChanged.connect(self.histWidget.histToggle.click)
         levels = imageItem.getLevels()
         try:
             self.hist.setLevels(levels[0], levels[1])
+            self.histWidget.maxLevelBox.setValue(levels[1])
+            self.histWidget.minLevelBox.setValue(levels[0])
         except TypeError:
             logging.info('Empty ImageItem')
 
     def activateHistogram(self, checked):
-        if not checked:
-            self.hist.sigLevelsChanged.disconnect(self.histToggle.click)
-            levels = self.plotItem.getLevels()
-            self.plotItem.setOpts(autoLevels=False)
-            self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
-            self.hist.setLevels(levels[0], levels[1])
-        else:
-            self.hist.sigLevelsChanged.connect(self.histToggle.click)
-            self.plotItem.setOpts(autoLevels=True)
-            im = self.plotItem.image
-            self.plotItem.setLevels((im.min(), im.max()))
-            self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+        """
+        Handles the "AutoLevels" checkbox below the histogram.
+
+        When unchecked, the histogram will control the levels of the image,
+        when checked image will use autoLevels=True
+
+        Parameters:
+            checked (bool): True if checkbox is checked, otherwise false
+        """
+        try:
+            if not checked:
+                self.hist.sigLevelsChanged.disconnect(
+                    self.histWidget.histToggle.click)
+                levels = self.plotItem.getLevels()
+                self.plotItem.setOpts(autoLevels=False)
+                self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
+                self.hist.sigLevelsChanged.connect(self.setLevelBoxes)
+                self.hist.setLevels(levels[0], levels[1])
+            else:
+                self.plotItem.setOpts(autoLevels=True)
+                im = self.plotItem.image
+                self.plotItem.setLevels((im.min(), im.max()))
+                self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+                self.hist.setLevels(im.min(), im.max())
+                self.hist.sigLevelsChanged.connect(
+                    self.histWidget.histToggle.click)
+        except TypeError:
+            raise
+
+    def setLevelBoxes(self):
+        """
+        Set the "Max" and "Min" boxes below the histogram to the levels
+        that the histogram is set to.
+        """
+        levels = self.hist.getLevels()
+        self.histWidget.maxLevelBox.setValue(levels[1])
+        self.histWidget.minLevelBox.setValue(levels[0])
+
+    def setHistFromBoxes(self):
+        """
+        Set the histogram levels from the "Max" and "Min" boxes
+        """
+        _max, _min = self.histWidget.maxLevelBox.value(), \
+            self.histWidget.minLevelBox.value()
+        self.hist.setLevels(_min, _max)
 
     def setLevelsFromHist(self):
+        """
+        Set the levels of the image from the histogram
+        """
         levels = self.hist.getLevels()
         self.plotItem.setLevels(levels)
 
@@ -354,6 +534,12 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         self.setImage(*args, **kwargs)
 
     def plotROI(self, roi):
+        """
+        Plot the current region of interest in a new MagicPlot window.
+
+        Parameters:
+            roi (pyqtgraph.ROI): Region of Interest to use for plotting
+        """
         window = MagicPlot()
         sliceData = roi.getArrayRegion(self.image, self)
         plt = window.plot(sliceData)
@@ -361,10 +547,17 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         self.windows.append([window, plt, roi])
 
     def updateWindows(self):
+        """
+        Update the RoI plots
+        """
         for i in self.windows:
-            window, plt, roi = i
-            sliceData = roi.getArrayRegion(self.image, self)
-            plt.setData(sliceData)
+            try:
+                window, plt, roi = i
+                sliceData = roi.getArrayRegion(self.image, self)
+                plt.setData(sliceData)
+            except:
+                logging.debug("RoI doesn't exist, removing window from list")
+                self.windows.remove(i)
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
