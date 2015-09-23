@@ -3,17 +3,13 @@ import numpy
 
 class AnalysisPlugin(QtGui.QWidget):
     """
-    Base class for analysis plugins to MagicPlot.
+    Base class for analysis plugins for MagicPlot.
 
     To create plugin, create class that inherits this class called
     "Plugin", ie:
         class Plugin(AnalysisPlugin)
     and place in MagicPlot/plugins directory. See example plugins.
     """
-    sigSetInputs = QtCore.pyqtSignal(object)
-    sigSetOutputs = QtCore.pyqtSignal(object)
-    sigSetUserInputs = QtCore.pyqtSignal(object)
-
     def __init__(self, params={}, name='Plugin'):
         super(AnalysisPlugin, self).__init__()
         self.params = params

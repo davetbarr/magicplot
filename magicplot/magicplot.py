@@ -6,7 +6,7 @@ import os
 import magicPlot_ui
 import shapeHolder
 import shapeDrawer
-import analysisPane_test
+import analysisPane
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
@@ -74,7 +74,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.setupUi(self)
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.drawSplitter.addWidget(self.shapeDrawer)
-        self.analysisPane = analysisPane_test.AnalysisPane(parent=self)
+        self.analysisPane = analysisPane.AnalysisPane(parent=self)
         self.analysisSplitter.addWidget(self.analysisPane)
         self.dataUpdateSignal1d.connect(self.analysisPane.updateData)
         self.dataUpdateSignal2d.connect(self.analysisPane.updateData)
