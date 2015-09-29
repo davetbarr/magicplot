@@ -158,6 +158,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
         self.analysisPane.initRegion(self.plotView)
+        self.plotItems = []
 
     def set2dPlot(self):
         print("Set 2d Plot")
@@ -169,6 +170,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.hist.setImageItem(self.plotItem)
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
+        self.plotItems = []
 
     @property
     def plotMode(self):
@@ -318,11 +320,12 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
             self.panBounds = kwargs['panBounds']
-        
-        self.transformer.sigActiveToggle.connect(
-                lambda: dataItem.setData(dataItem.getData()))
-        return dataItem
 
+        # add the plotItem to the list
+        self.plotItems.append(dataItem)
+        self.transformer.sigActiveToggle.connect(
+                dataItem.transformToggle)
+        return dataItem
 
 
     def plot1d(self, dataItem):
@@ -366,6 +369,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def dataUpdateHandler(self, data):
         self.analysisPane.updateData(data)
         self.updatePanBounds()
+        if self.plotMode == 2:
+            self.setHistFromData(data)
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
@@ -526,6 +531,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         levels = self.hist.getLevels()
         self.plotItem.setLevels(levels)
 
+    def setHistFromData(self, data):
+        self.hist.blockSignals(True)
+        _min, _max = data.min(), data.max()
+        self.hist.setLevels(_min, _max)
+        self.setLevelBoxes()
+        self.hist.blockSignals(False)
+
 class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
     A class that defines 2D image data, wrapper around pyqtgraph.ImageItem()
@@ -537,6 +549,7 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
+        self.originalData = None
 
     def setData(self, data, **kwargs):
         """
@@ -579,6 +592,14 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
                 logging.debug("RoI doesn't exist, removing window from list")
                 self.windows.remove(i)
 
+    def transformToggle(self, checked):
+        if checked:
+            self.originalData = self.getData()
+            self.setData(self.getData())
+        else:
+            self.setData(self.originalData)
+            self.originalData = None
+
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
     A class that defines a set of 1D plot data, wrapper around
@@ -593,13 +614,15 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.setType(kwargs['type'])
         if 'color' in kwargs.keys():
             self.setColor(pyqtgraph.mkColor(kwargs['color']))
+        self.originalData = None
 
     def setData(self, data):
         if self.parent.transformer.active:
             data = self.parent.transformer.transform(data)
         if len(data) == 2:
             super(MagicPlotDataItem, self).setData(data[0], data[1])
-        super(MagicPlotDataItem, self).setData(data)
+        else:
+            super(MagicPlotDataItem, self).setData(data)
 
     def setColor(self, color):
         """
@@ -627,6 +650,14 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         if plotType == 'line':
             self.setColor('w')
             self.setSymbol(None)
+
+    def transformToggle(self, checked):
+        if checked:
+            self.originalData = self.getData()
+            self.setData(self.getData())
+        else:
+            self.setData(self.originalData)
+            self.originalData = None
 
 if __name__ == "__main__":
     app = QtGui.QApplication([])

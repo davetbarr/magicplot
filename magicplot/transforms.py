@@ -34,11 +34,12 @@ class Transformer(QtCore.QObject):
 
     def addFromContextMenu(self, action):
         activeCheck = self.transMenu.actions()[0]
-        if activeCheck.isChecked():
+        if self.aList.rowCount() != 0:
             self.aList.clear()
+            activeCheck.setChecked(False)
         row = action.data().toInt()[0]
         self.aList.append(self.tList[row])
-        self.transMenu.actions()[0].setChecked(True)
+        activeCheck.setChecked(True)
     
     def transform(self, data):
         if self.active:
