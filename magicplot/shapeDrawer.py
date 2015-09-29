@@ -24,7 +24,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
     """
 
     def __init__(self, view=None, item=None):
-        # Run init on th e QWidget class
+        # Run init on the QWidget class
         super(ShapeDrawer, self).__init__()
         self.setupUi(self)
 

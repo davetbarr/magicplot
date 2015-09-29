@@ -4,9 +4,10 @@ import numpy
 import os
 import pickle
 import cPickle
+import copy
 PATH = os.path.dirname(os.path.abspath(__file__))
 
-class TransformPlugin():
+class TransformPlugin(object):
     """
     Base class for transform plugins for MagicPlot
     """
@@ -18,14 +19,29 @@ class TransformPlugin():
         self.data = data
 
     def setParams(self, params):
-        self.params = params
+        for i in self.paramBoxList.keys():
+            self.params[i] = self.paramBoxList[i].value()
 
     def run(self):
-        pass
+        return self.data
+
+    def generateUi(self):
+        self.layout = QtGui.QGridLayout()
+        self.paramBoxList = {}
+        for i in self.params.keys():
+            label = QtGui.QLabel(i)
+            box = QtGui.QDoubleSpinBox()
+            box.setValue(self.params[i])
+            box.valueChanged.connect(self.setParams)
+            self.paramBoxList[i] = box
+            self.layout.addWidget(label)
+            self.layout.addWidget(box)
     
 class TransformDialog(QtGui.QDialog):
     """
-    Dialog that shows available transforms in a QListView
+    Dialog that shows available transforms in a QListView, and active
+    transforms in another. Transforms are applied from top to bottom
+    in the QListView.
 
     Transforms can be applied to data in any order
     """
@@ -52,10 +68,10 @@ class TransformListView(QtGui.QListView):
     def __init__(self, parent=None):
         super(TransformListView, self).__init__(parent)
         self.setDragEnabled(True)
-        self.setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
 
     def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat("application/x-Plugin"):
+        if event.mimeData().hasFormat("text/plain"):
             event.setDropAction(QtCore.Qt.MoveAction)
             event.accept()
         else:
@@ -65,12 +81,9 @@ class TransformListView(QtGui.QListView):
         index = self.indexAt(event.pos())
         if not index.isValid():
             return
-
-        selected = self.model().data(index,QtCore.Qt.UserRole)
-
-        bstream = cPickle.dumps(selected)
+        
         mimeData = QtCore.QMimeData()
-        mimeData.setData("application/x-Plugin", bstream)
+        mimeData.setData("text/plain", str(index.row()))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
@@ -86,45 +99,45 @@ class ActiveTransformListView(QtGui.QListView):
     """
     def __init__(self, parent=None):
         super(ActiveTransformListView, self).__init__(parent)
-        self.setDragEnabled(True)
-        self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
+        self.setAcceptDrops(True)
+        self.setDragEnabled(True)
+
+        # connect double click to remove plugin
+        self.doubleClicked.connect(self.removePlugin)
+        self.clicked.connect(self.openParamDialog)
 
     def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat("application/x-Plugin"):
+        if event.mimeData().hasFormat("text/plain"):
             event.accept()
         else:
             event.ignore()
 
     def dragMoveEvent(self, event):
-        if event.mimeData().hasFormat("application/x-Plugin"):
-            event.setDropAction(QtCore.Qt.CopyAction)
+        if event.mimeData().hasFormat("text/plain"):
             event.accept()
         else:
             event.ignore()
 
-    def dropEvent(self, event):
-        data = event.mimeData()
-        bstream = data.retrieveData("application/x-Plugin",
-                QtCore.QVariant.ByteArray)
-        selected = pickle.loads(bstream.toByteArray())
-        index = self.indexAt(event.pos())
-        row =index.row()
-        if row == -1:
-            self.model().append(selected)
-        else:
-            self.model().insertRows(row, 1, plugin=selected)
-        
-        event.accept()
+    def removePlugin(self, index):
+        self.model().removeRow(index.row())
+
+    def openParamDialog(self, index):
+        plugin = self.model()[index.row()]
+        self.dialog = ParamDialog(plugin)
+        self.dialog.show()
+
+
 
 class TransformList(QtCore.QAbstractListModel):
     """
-    Model for TransformListView
+    Model for TransformListView and ActiveTransformListView
     """
     def __init__(self, parent):
         super(TransformList, self).__init__(parent)
         self.parent = parent
         self.tList = []
+        self._pickleList = []
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         if parent.isValid(): return 0
@@ -194,7 +207,35 @@ class TransformList(QtCore.QAbstractListModel):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
                 exec(f, globals())
-                self.append(Plugin())
+                plugin = Plugin()
+                self.append(plugin)
+                self._pickleList.append(cPickle.dumps(plugin))
+
+    def dropMimeData(self, data, action, row, column, parent):
+        tListRow = int(data.data("text/plain")) 
+        plugin = copy.copy(self.parent[tListRow])
+        if action == QtCore.Qt.CopyAction:
+            if row == -1:
+                self.append(plugin)
+            else:
+                self.insertRows(row, 1, plugin=plugin)
+            return True
+        else: return False
+
+class ParamDialog(QtGui.QDialog):
+    """
+    Dialog to get user defined parameters for a particular
+    plugin in the active plugins list
+    """
+    def __init__(self, plugin):
+        super(ParamDialog, self).__init__()
+        self.plugin=plugin
+        self.setupUi()
+
+    def setupUi(self):
+        self.plugin.generateUi()
+        self.setLayout(self.plugin.layout)
+        
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])

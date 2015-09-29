@@ -7,6 +7,7 @@ import magicPlot_ui
 import shapeHolder
 import shapeDrawer
 import analysisPane
+import transforms
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
@@ -76,10 +77,11 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.drawSplitter.addWidget(self.shapeDrawer)
         self.analysisPane = analysisPane.AnalysisPane(parent=self)
         self.analysisSplitter.addWidget(self.analysisPane)
-        self.dataUpdateSignal1d.connect(self.analysisPane.updateData)
-        self.dataUpdateSignal2d.connect(self.analysisPane.updateData)
-        self.dataUpdateSignal1d.connect(self.updatePanBounds)
-        self.dataUpdateSignal2d.connect(self.updatePanBounds)
+        self.transformer = transforms.Transformer()
+        self.dataUpdateSignal1d.connect(self.dataUpdateHandler)
+        self.dataUpdateSignal2d.connect(self.dataUpdateHandler)
+ 
+    
 
         # Initialise HistogramLUTWidget
         self.histWidget = QtGui.QWidget()
@@ -88,8 +90,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.histWidget.maxLevelBox.valueChanged.connect(self.setHistFromBoxes)
         self.histWidget.minLevelBox = QtGui.QDoubleSpinBox()
         self.histWidget.minLevelBox.valueChanged.connect(self.setHistFromBoxes)
-        self.histWidget.maxLevelBox.setRange(0,10000)
-        self.histWidget.minLevelBox.setRange(0,10000)
+        self.histWidget.maxLevelBox.setRange(-10000,10000)
+        self.histWidget.minLevelBox.setRange(-10000,10000)
         self.histWidget.histToggle = QtGui.QCheckBox('Auto Levels')
         self.histWidget.histToggle.setChecked(True)
         self.histWidget.histToggle.toggled.connect(self.activateHistogram)
@@ -117,7 +119,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.histWidget.hide()
         self.analysisPane.hide()
 
-        # Context menus
+        # Context menu for showing panes
         self.showMenu = QtGui.QMenu('Show...')
         showShapes = QtGui.QAction('Shapes', self)
         showShapes.setCheckable(True)
@@ -154,6 +156,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.plotItem = self.plotView.plotItem
         self.viewBox = self.plotView.getViewBox()
         self.viewBox.menu.addMenu(self.showMenu)
+        self.viewBox.menu.addMenu(self.transformer.transMenu)
         self.analysisPane.initRegion(self.plotView)
 
     def set2dPlot(self):
@@ -165,6 +168,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.viewBox = self.plotView.getViewBox()
         # self.hist.setImageItem(self.plotItem)
         self.viewBox.menu.addMenu(self.showMenu)
+        self.viewBox.menu.addMenu(self.transformer.transMenu)
 
     @property
     def plotMode(self):
@@ -256,7 +260,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         """
         Returns an empty MagicPlotImageItem and adds it to magicplot window
         """
-        imageItem = MagicPlotImageItem()
+        imageItem = MagicPlotImageItem(self)
         if self.plotMode != 2:
             self.plotMode = 2
         self.plot2d(imageItem)
@@ -266,7 +270,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         """
         Returns an empty MagicPlotDataItem and adds it to magicplot window
         """
-        dataItem = MagicPlotDataItem()
+        dataItem = MagicPlotDataItem(self)
         if self.plotMode != 1:
             self.plotMode = 1
         self.plot1d(dataItem)
@@ -292,7 +296,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
         try:
             # Try to plot 1d
-            dataItem = MagicPlotDataItem(*args, **kwargs)
+            dataItem = MagicPlotDataItem(self, *args, **kwargs)
             if self.plotMode != 1:
                 self.plotMode = 1
             self.plot1d(dataItem)
@@ -302,7 +306,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
-                dataItem = MagicPlotImageItem(*args, **kwargs)
+                dataItem = MagicPlotImageItem(self, *args, **kwargs)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
@@ -314,7 +318,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
             self.panBounds = kwargs['panBounds']
-
+        
+        self.transformer.sigActiveToggle.connect(
+                lambda: dataItem.setData(dataItem.getData()))
         return dataItem
 
 
@@ -356,6 +362,10 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
         self.viewBox.autoRange()
+
+    def dataUpdateHandler(self, data):
+        self.analysisPane.updateData(data)
+        self.updatePanBounds()
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
@@ -458,6 +468,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             self.hist.setLevels(levels[0], levels[1])
             self.histWidget.maxLevelBox.setValue(levels[1])
             self.histWidget.minLevelBox.setValue(levels[0])
+            self.histWidget.histToggle.setChecked(True)
         except TypeError:
             logging.info('Empty ImageItem')
 
@@ -521,17 +532,26 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
 
     Returned by MagicPlot.plot()
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent,  *args, **kwargs):
+        self.parent = parent
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
 
-    def setData(self, *args, **kwargs):
+    def setData(self, data, **kwargs):
         """
         Wrapper for pyqtgraph.ImageItem.setImage() to make it consistent with
         pyqtgraph.PlotDataItem.setData()
         """
-        self.setImage(*args, **kwargs)
+        self.setImage(image=data, **kwargs)
+    
+    def setImage(self, image=None, **kargs):
+        if self.parent.transformer.active and image is not None:
+            image = self.parent.transformer.transform(image)
+        super(MagicPlotImageItem, self).setImage(image=image, **kargs)
+
+    def getData(self):
+        return self.image
 
     def plotROI(self, roi):
         """
@@ -566,12 +586,20 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
 
     Returned by MagicPlot.plot()
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
+        self.parent = parent
         super(MagicPlotDataItem, self).__init__(*args, **kwargs)
         if 'type' in kwargs.keys():
             self.setType(kwargs['type'])
         if 'color' in kwargs.keys():
             self.setColor(pyqtgraph.mkColor(kwargs['color']))
+
+    def setData(self, data):
+        if self.parent.transformer.active:
+            data = self.parent.transformer.transform(data)
+        if len(data) == 2:
+            super(MagicPlotDataItem, self).setData(data[0], data[1])
+        super(MagicPlotDataItem, self).setData(data)
 
     def setColor(self, color):
         """

@@ -5,4 +5,7 @@ class Plugin(TransformPlugin):
                 name='Log')
 
     def run(self):
-        return numpy.log(self.data)
+        if len(self.data) == 2:
+            return numpy.log(self.data[1])
+        else:
+            return numpy.log(self.data)
