@@ -3,6 +3,8 @@ from __future__ import division
 from PyQt4 import QtCore, QtGui
 import transformPlugins
 
+import copy
+
 class Transformer(QtCore.QObject):
     sigActiveToggle = QtCore.pyqtSignal(bool)
     def __init__(self):
@@ -23,10 +25,21 @@ class Transformer(QtCore.QObject):
         openDialog.triggered.connect(self.openDialog)
         self.transMenu.addAction(openDialog)
         self.transMenu.addSeparator()
-        for i in self.tList:
-            action = QtGui.QAction(i.name, self)
-            action.triggered.connect(lambda: self.aList.append(i))
+        self.quickTransforms = QtGui.QActionGroup(self)
+        for row, plugin in enumerate(self.tList):
+            action = QtGui.QAction(plugin.name, self.quickTransforms)
+            action.setData(row)
             self.transMenu.addAction(action)
+        self.quickTransforms.triggered.connect(self.addFromContextMenu)
+
+    def addFromContextMenu(self, action):
+        if action.data() is not None:
+            row = action.data().toInt()[0]
+            print row
+            self.aList.append(self.tList[row])
+        else:
+            pass
+        
 
     def transform(self, data):
         if self.active:

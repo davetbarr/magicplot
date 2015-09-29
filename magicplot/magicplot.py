@@ -142,7 +142,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotMode = 2
 
         # defualt setting for locking viewBox to data
-        self.panBounds = False
+        self.panBounds = True
 
 
 
