@@ -543,6 +543,8 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     A class that defines 2D image data, wrapper around pyqtgraph.ImageItem()
 
     Returned by MagicPlot.plot()
+
+    Use MagicPlot.getImageItem() to get an empty MagicPlotImageItem to use
     """
     def __init__(self, parent,  *args, **kwargs):
         self.parent = parent
@@ -606,6 +608,9 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     pyqtgraph.PlotDataItem()
 
     Returned by MagicPlot.plot()
+
+    Use MagicPlot.getDataItem() to generate an empty MagicPlotDataItem
+    to use
     """
     def __init__(self, parent, *args, **kwargs):
         self.parent = parent
