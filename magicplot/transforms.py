@@ -33,14 +33,13 @@ class Transformer(QtCore.QObject):
         self.quickTransforms.triggered.connect(self.addFromContextMenu)
 
     def addFromContextMenu(self, action):
-        if action.data() is not None:
-            row = action.data().toInt()[0]
-            print row
-            self.aList.append(self.tList[row])
-        else:
-            pass
-        
-
+        activeCheck = self.transMenu.actions()[0]
+        if activeCheck.isChecked():
+            self.aList.clear()
+        row = action.data().toInt()[0]
+        self.aList.append(self.tList[row])
+        self.transMenu.actions()[0].setChecked(True)
+    
     def transform(self, data):
         if self.active:
             for i in self.aList:

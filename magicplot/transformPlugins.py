@@ -137,7 +137,6 @@ class TransformList(QtCore.QAbstractListModel):
         super(TransformList, self).__init__(parent)
         self.parent = parent
         self.tList = []
-        self._pickleList = []
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         if parent.isValid(): return 0
@@ -198,6 +197,10 @@ class TransformList(QtCore.QAbstractListModel):
         self.endRemoveRows()
         return True
 
+    def clear(self):
+        count = self.rowCount()
+        self.removeRows(0,count)
+
     def __getitem__(self, index):
         return self.tList[index]
 
@@ -209,7 +212,6 @@ class TransformList(QtCore.QAbstractListModel):
                 exec(f, globals())
                 plugin = Plugin()
                 self.append(plugin)
-                self._pickleList.append(cPickle.dumps(plugin))
 
     def dropMimeData(self, data, action, row, column, parent):
         tListRow = int(data.data("text/plain")) 
