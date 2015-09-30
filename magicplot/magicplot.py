@@ -65,6 +65,39 @@ def plot(*args, **kwargs):
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     """
     A MagicPlot widget that can be run in a window or embedded.
+
+    Parameters:
+        parent (Optional[QObject])
+
+    Attributes:
+        plotMode (int): 1 = 1D plot, 2 = 2D plot
+
+        windowPlots (list): List of additional pop-up window plots created
+            by plotting Regions of Interest
+
+        plotItems (list): List of plotItems (MagicPlotDataItem) that are 
+            currently plotted in the window. Note: only 1 MagicPlotImageItem
+            can exist at a time
+
+        shapeDrawer (shapeDrawer.ShapeDrawer): controls drawing of shapes on the
+            plot 
+
+        analysisPane (analysisPane.AnalysisPane): controls data analysis plugins 
+
+        transformer (transforms.Transformer): controls the application of
+            transform plugins to the data
+
+        histWidget (QWidget): QWidget containing histogram for image data, boxes
+            for manually setting histogram and Auto-Levels checkbox
+
+        hist (pyqtgraph.HistogramLUTItem): pyqtgraph histogram item
+
+        showMenu (QMenu): context menu for showing histogram, analysis and
+            shapes
+
+        panBounds (bool): If True, locks the panning of the plot to the data.
+            True by default.
+
     """
     dataUpdateSignal1d = QtCore.pyqtSignal(object)
     dataUpdateSignal2d = QtCore.pyqtSignal(object)
@@ -108,11 +141,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.histWidget.setLayout(histLayout)
         self.drawSplitter.insertWidget(0, self.histWidget)
 
-        # need to connect this so its changed by something, at the moment
-        # it's just always false
-        self.isGettingLevelsFromHist = False
-
-        # Set initial splitter sizes
+        # Set initial splitter sizes, hide by default
         self.drawSplitter.setSizes([2,1000,1])
         self.analysisSplitter.setSizes([70,1])
         self.shapeDrawer.hide()
@@ -201,6 +230,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
     @panBounds.setter
     def panBounds(self, bounds):
+        """
+        Sets panBounds by autoRanging the viewBox then setting limits
+        """
         try:
            self.viewBox.autoRange()
            if bounds is True:
@@ -228,11 +260,11 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 ##############################
 
     def mousePosMoved(self, pos):
-        '''
+        """
         method attached to pyqtgraph image widget which gets the mouse position
         If the mouse is in the image, print both the mouse position and
         pixel value to the gui
-        '''
+        """
         imgPos = pos
         self.mousePos = self.viewBox.mapSceneToView(imgPos)
         value = None
@@ -261,6 +293,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def getImageItem(self):
         """
         Returns an empty MagicPlotImageItem and adds it to magicplot window
+
+        Returns:
+            MagicPlotImageItem: an empty MagicPlotImageItem
         """
         imageItem = MagicPlotImageItem(self)
         if self.plotMode != 2:
@@ -271,6 +306,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     def getDataItem(self):
         """
         Returns an empty MagicPlotDataItem and adds it to magicplot window
+
+        Returns:
+            MagicPlotDataItem: an empty MagicPlotDataItem
         """
         dataItem = MagicPlotDataItem(self)
         if self.plotMode != 1:
@@ -367,8 +405,14 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.viewBox.autoRange()
 
     def dataUpdateHandler(self, data):
+        """
+        Connected to the dataUpdate1d and dataUpdate2d signals, handles
+        updating data in the plot.
+        """
         self.analysisPane.updateData(data)
         self.updatePanBounds()
+
+        # if in 2d plotMode, get the histogram updated too
         if self.plotMode == 2:
             self.setHistFromData(data)
 
@@ -391,7 +435,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             y (float): y co-ordinate of lower-left corner
             width (float): width of rectangle
             height (float): height of rectangle
-            color (optional[str]): color of rectangle, see pyqtgraph.mkColor
+            color (Optional[str]): color of rectangle, see pyqtgraph.mkColor
 
         Returns:
             QGraphicsRectItem - the rectangle
@@ -409,7 +453,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             y1 (float): y co-ordinate of beginning of line
             x2 (float): x co-ordinate of end of line
             y2 (float): y co-ordinate of end of line
-            color (optional[str]): color of line, see pyqtgraph.mkColor
+            color (Optional[str]): color of line, see pyqtgraph.mkColor
 
         Returns:
             QGraphicsLineItem - the line
@@ -429,7 +473,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             height (float): height of grid
             rows (int): number of rows
             columns (int): number of columns
-            color (optional[str]): color of line, see pyqtgraph.mkColor
+            color (Optional[str]): color of line, see pyqtgraph.mkColor
 
         Returns:
             Grid
@@ -447,7 +491,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             x (float): x co-ordinate of circle center
             y (float): y co-ordinate of circle center
             r (float): radius of circle
-            color (optional[str]): color of circle, see pyqtgraph.mkColor
+            color (Optional[str]): color of circle, see pyqtgraph.mkColor
 
         Returns:
             QGraphicsEllipseItem - the circle
@@ -532,6 +576,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotItem.setLevels(levels)
 
     def setHistFromData(self, data):
+        """
+        Set the levels of histogram from arbitrary data, fixes
+        bug where updating data was not updating histogram
+
+        Parameters:
+            data (numpy.ndarray)
+        """
         self.hist.blockSignals(True)
         _min, _max = data.min(), data.max()
         self.hist.setLevels(_min, _max)
@@ -545,6 +596,21 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     Returned by MagicPlot.plot()
 
     Use MagicPlot.getImageItem() to get an empty MagicPlotImageItem to use
+
+    Parameters:
+        parent (QObject): when plotting using MagicPlot.plot() or
+            MagicPlot.getImageItem() this is set to the MagicPlot window
+            so that transforms can be applied to the data
+    
+    Attributes:
+        parent (QObject): the parent object of this ImageItem
+
+        windows (list): List of pop-up MagicPlot windows generated
+            by plotROI, used to update these plots and keep them in scope
+
+        originalData (numpy.ndarray): When transforms are applied, the
+            pre-transformed data is kept and replotted if the tranforms
+            are turned off
     """
     def __init__(self, parent,  *args, **kwargs):
         self.parent = parent
@@ -561,11 +627,19 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         self.setImage(image=data, **kwargs)
     
     def setImage(self, image=None, **kargs):
+        """
+        Extension of pyqtgraph.ImageItem.setImage() to allow transforms to be
+        applied to the data before it is plotted.
+        """
         if self.parent.transformer.active and image is not None:
             image = self.parent.transformer.transform(image)
         super(MagicPlotImageItem, self).setImage(image=image, **kargs)
 
     def getData(self):
+        """
+        Wrapper around pyqtgraph.ImageItem.image to make it consistent with
+        pyqtgraph.PlotDataItem.getData()
+        """
         return self.image
 
     def plotROI(self, roi):
@@ -595,6 +669,14 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
                 self.windows.remove(i)
 
     def transformToggle(self, checked):
+        """
+        Handles clicks on the 'Activate Transforms' menu option when this
+        ImageItem is plotted. Stores the untransformed data.
+
+        Parameters:
+            checked (bool): If True, then transforms are applied and the
+                original data is saved.
+        """
         if checked:
             self.originalData = self.getData()
             self.setData(self.getData())
@@ -611,6 +693,19 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
 
     Use MagicPlot.getDataItem() to generate an empty MagicPlotDataItem
     to use
+
+    Parameters:
+        parent (QObject): when plotting using MagicPlot.plot() or
+            MagicPlot.getDataItem() this is set to the MagicPlot window
+            so that transforms can be applied to the data
+
+    Attributes:
+        parent (QObject): the parent object of this DataItem
+
+        originalData (numpy.ndarray): When transforms are applied, the
+            pre-transformed data is kept and replotted if the tranforms
+            are turned off
+
     """
     def __init__(self, parent, *args, **kwargs):
         self.parent = parent
@@ -622,6 +717,10 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         self.originalData = None
 
     def setData(self, data):
+        """
+        Extension of pyqtgraph.PlotDataItem.setData to allow the
+        application of transoforms before data is set.
+        """
         if self.parent.transformer.active:
             data = self.parent.transformer.transform(data)
         if len(data) == 2:
@@ -646,7 +745,7 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
 
         Parameters:
             plotType (str): A string describing the plot type, choose from
-                            'scatter' or 'line'
+                'scatter' or 'line'
         """
 
         if plotType == 'scatter':
@@ -657,6 +756,14 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.setSymbol(None)
 
     def transformToggle(self, checked):
+        """
+        Handles clicks on the 'Activate Transforms' menu option when this
+        DataItem is plotted. Stores the untransformed data.
+
+        Parameters:
+            checked (bool): If True, then transforms are applied and the
+                original data is saved.
+        """
         if checked:
             self.originalData = self.getData()
             self.setData(self.getData())

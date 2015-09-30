@@ -6,6 +6,16 @@ import transformPlugins
 import copy
 
 class Transformer(QtCore.QObject):
+    """
+    Controls transformation of data using MagicPlot TransformPlugins.
+
+    Attributes:
+        tList (transformPlugins.TransformList): List of available transforms
+        aList (transformPlugins.TransformList): List of applied transforms
+        active (bool): if True, then transforms are applied
+        dialog (transformPlugins.TransformDialog): Dialog showing tList and aList,
+            where the user can drag and drop from available to applied transforms
+    """
     sigActiveToggle = QtCore.pyqtSignal(bool)
     def __init__(self):
         super(Transformer, self).__init__()
@@ -16,6 +26,9 @@ class Transformer(QtCore.QObject):
         self.initContextMenu()
 
     def initContextMenu(self):
+        """
+        Right-click context menu shown under 'Transforms'
+        """
         self.transMenu = QtGui.QMenu('Transforms')       
         runTransforms = QtGui.QAction('Activate Transforms', self)
         runTransforms.setCheckable(True)
@@ -25,6 +38,9 @@ class Transformer(QtCore.QObject):
         openDialog.triggered.connect(self.openDialog)
         self.transMenu.addAction(openDialog)
         self.transMenu.addSeparator()
+
+        # add transforms to list below other options so they can be 
+        # quickly selected and applied
         self.quickTransforms = QtGui.QActionGroup(self)
         for row, plugin in enumerate(self.tList):
             action = QtGui.QAction(plugin.name, self.quickTransforms)
@@ -33,6 +49,11 @@ class Transformer(QtCore.QObject):
         self.quickTransforms.triggered.connect(self.addFromContextMenu)
 
     def addFromContextMenu(self, action):
+        """
+        Use one of the quick transformations to transform data.
+        This automatically enables transforms if they are not already
+        active.
+        """
         activeCheck = self.transMenu.actions()[0]
         if self.aList.rowCount() != 0:
             self.aList.clear()
@@ -42,6 +63,17 @@ class Transformer(QtCore.QObject):
         activeCheck.setChecked(True)
     
     def transform(self, data):
+        """
+        Transform data by applying the transforms in the applied
+        transforms list in order.
+
+        Parameters:
+            data (numpy.ndarray, tuple[numpy.ndarray]): the data to be
+                transformed.
+
+        Returns:
+            numpy.ndarray: the transformed data
+        """
         if self.active:
             for i in self.aList:
                 i.setData(data)
@@ -51,11 +83,17 @@ class Transformer(QtCore.QObject):
             return data
     
     def openDialog(self):
+        """
+        Open the transforms dialog
+        """
         self.dialog = transformPlugins.TransformDialog(tList=self.tList,
                 aList=self.aList)
         self.dialog.show()
         
     def toggleRunning(self, checked):
+        """
+        Handles the activate transforms menu option
+        """
         self.active = checked
         self.sigActiveToggle.emit(checked)
 

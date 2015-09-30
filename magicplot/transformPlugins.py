@@ -43,7 +43,8 @@ class TransformDialog(QtGui.QDialog):
     transforms in another. Transforms are applied from top to bottom
     in the QListView.
 
-    Transforms can be applied to data in any order
+    Transforms can be applied to data in any order by dragging and
+    dropping.
     """
 
     def __init__(self, tList=None, aList=None):
@@ -52,12 +53,16 @@ class TransformDialog(QtGui.QDialog):
 
     def setupUi(self, tList, aList):
         self.layout = QtGui.QGridLayout()
+        self.tViewLabel = QtGui.QLabel('Available Transforms')
+        self.activeViewLabel = QtGui.QLabel('Applied Transforms')
+        self.layout.addWidget(self.tViewLabel, 0,0)
+        self.layout.addWidget(self.activeViewLabel, 0, 1)
         self.tView = TransformListView()
         self.tView.setModel(tList)
         self.activeView = ActiveTransformListView()
         self.activeView.setModel(aList)
-        self.layout.addWidget(self.tView, 0,0)
-        self.layout.addWidget(self.activeView, 0,1)
+        self.layout.addWidget(self.tView, 1,0)
+        self.layout.addWidget(self.activeView, 1,1)
         self.setLayout(self.layout)
 
 class TransformListView(QtGui.QListView):
@@ -103,7 +108,8 @@ class ActiveTransformListView(QtGui.QListView):
         self.setAcceptDrops(True)
         self.setDragEnabled(True)
 
-        # connect double click to remove plugin
+        # connect double click to remove plugin, click
+        # to bring up param dialog
         self.doubleClicked.connect(self.removePlugin)
         self.clicked.connect(self.openParamDialog)
 
@@ -121,11 +127,16 @@ class ActiveTransformListView(QtGui.QListView):
 
     def removePlugin(self, index):
         self.model().removeRow(index.row())
+        try:
+            self.dialog.close()
+        except AttributeError:
+            pass
 
     def openParamDialog(self, index):
         plugin = self.model()[index.row()]
-        self.dialog = ParamDialog(plugin)
-        self.dialog.show()
+        if plugin.params != {}:
+            self.dialog = ParamDialog(plugin)
+            self.dialog.show()
 
 
 
@@ -205,6 +216,10 @@ class TransformList(QtCore.QAbstractListModel):
         return self.tList[index]
 
     def getTransforms(self):
+        """
+        Search the directory '../plugins/transforms' for plugins and add them
+        to the list
+        """
         path = os.path.abspath(os.path.join(PATH, '../plugins/transforms'))
         for i in os.listdir(path):
             fname = os.path.join(path, i)
@@ -228,6 +243,10 @@ class ParamDialog(QtGui.QDialog):
     """
     Dialog to get user defined parameters for a particular
     plugin in the active plugins list
+
+    Parameters:
+        plugin (TransformPlugin): The selected plugin whose parameters
+            you want to change. 
     """
     def __init__(self, plugin):
         super(ParamDialog, self).__init__()
@@ -235,6 +254,10 @@ class ParamDialog(QtGui.QDialog):
         self.setupUi()
 
     def setupUi(self):
+        """
+        Generates the Ui of the dialog by calling the generateUi()
+        method of the plugin
+        """
         self.plugin.generateUi()
         self.setLayout(self.plugin.layout)
         
