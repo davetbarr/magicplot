@@ -410,11 +410,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         updating data in the plot.
         """
         self.analysisPane.updateData(data)
-        self.updatePanBounds()
-
-        # if in 2d plotMode, get the histogram updated too
-        if self.plotMode == 2:
-            self.setHistFromData(data)
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
@@ -631,9 +626,26 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         Extension of pyqtgraph.ImageItem.setImage() to allow transforms to be
         applied to the data before it is plotted.
         """
+
+        # transform if transformer is active
         if self.parent.transformer.active and image is not None:
             image = self.parent.transformer.transform(image)
+
+        # update panBounds if the shape of the image is different
+        try:    
+            if image.shape != self.image.shape:
+                updateBounds = True
+            else:
+                updateBounds = False
+        except AttributeError:
+            updateBounds = True
+
+        # call the pyqtgraph.ImageItem.setImage() function    
         super(MagicPlotImageItem, self).setImage(image=image, **kargs)
+
+        # if we're updating the panBounds, then do that
+        if updateBounds:
+            self.parent.updatePanBounds()
 
     def getData(self):
         """
@@ -719,14 +731,34 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     def setData(self, data):
         """
         Extension of pyqtgraph.PlotDataItem.setData to allow the
-        application of transoforms before data is set.
+        application of transforms before data is set.
         """
+        # transform if transformer is active
         if self.parent.transformer.active:
             data = self.parent.transformer.transform(data)
-        if len(data) == 2:
-            super(MagicPlotDataItem, self).setData(data[0], data[1])
-        else:
-            super(MagicPlotDataItem, self).setData(data)
+
+        # test if data is different length, if so then setPanBounds
+        try:
+            if type(data) is tuple:
+                print "tuple"
+                if data[0].shape != self.getData()[0].shape:
+                    setBounds = True
+                else:
+                    setBounds = False
+            else:
+                if data.shape != self.getData()[1].shape:
+                    setBounds = True
+                else:
+                    setBounds = False
+        except AttributeError:
+            setBounds = True
+
+        # setData with pyqtgraph.PlotDataItem.setData()
+        super(MagicPlotDataItem, self).setData(data)
+
+        # update the panBounds if we are setting them
+        if setBounds:
+            self.parent.updatePanBounds()
 
     def setColor(self, color):
         """
