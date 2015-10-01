@@ -4,15 +4,17 @@ Analysis Plugins
 ================
 
 Analysis plugins use data that is currently plotted in the MagicPlot. To write a
-plugin, simply inherit the base class ``AnalysisPlugin`` and provide at the
-minimum an ``__init__`` and a ``run()`` function. In the ``__init__`` function
-any parameters that the analysis routine requires and their defualt values
-should be set as a dictionary, and the name of the plugin should be set. This is
-done by calling ``__init__`` on the base class:: 
+plugin, simply create a class ``Plugin`` that inherits the base class
+``AnalysisPlugin`` and provide at the minimum an ``__init__`` and a ``run()``
+function. In the ``__init__`` function any parameters that the analysis routine
+requires and their defualt values should be set as a dictionary, and the name of
+the plugin should be set. This is done by calling ``__init__`` on the base
+class:: 
 
-    def __init__(self):
-        AnalysisPlugin.__init__(params={'param1': param1, 'param2': param2},
-            name='MyPlugin')
+    class Plugin(AnalysisPlugin):
+        def __init__(self):
+            AnalysisPlugin.__init__(params={'param1': param1, 'param2': param2},
+                name='MyPlugin')
 
 ``numpy`` is already imported, but if you need other modules for analysis then
 import them in ``__init__``
@@ -31,7 +33,7 @@ parameter values::
 Place ``MyPlugin.py`` into the ``MagicPlot/plugins/analysis`` directory and it
 will be autodetected by MagicPlot.
 
-See the example plugins for more information.
+See the example plugins in the analysis plugins directory for more information.
 """
 from PyQt4 import QtGui, QtCore
 import numpy

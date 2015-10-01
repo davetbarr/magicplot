@@ -349,7 +349,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
-                dataItem = MagicPlotImageItem(self, args, **kwargs)
+                dataItem = MagicPlotImageItem(self, *args, **kwargs)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
@@ -634,13 +634,12 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         Extension of pyqtgraph.ImageItem.setImage() to allow transforms to be
         applied to the data before it is plotted.
         """
-
         # transform if transformer is active
         if self.parent.transformer.active and image is not None:
             image = self.parent.transformer.transform(image)
 
         # call the pyqtgraph.ImageItem.setImage() function    
-        super(MagicPlotImageItem, self).setImage(image=image, **kargs)
+        super(MagicPlotImageItem, self).setImage(image, **kargs)
 
     def informViewBoundsChanged(self):
         super(MagicPlotImageItem, self).informViewBoundsChanged()
