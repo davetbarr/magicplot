@@ -173,6 +173,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # defualt setting for locking viewBox to data
         self.panBounds = True
 
+        # default setting for autoLevels of 2d plots
+        self.autoLevels = True
+
 
 
  # Methods to setup plot areaD
@@ -346,7 +349,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         except Exception as e:
             # Try to plot 2d
             if e.message.find('array shape must be') == 0:
-                dataItem = MagicPlotImageItem(self, *args, **kwargs)
+                dataItem = MagicPlotImageItem(self, args, **kwargs)
                 if self.plotMode != 2:
                     self.plotMode = 2
                 self.plot2d(dataItem)
@@ -358,6 +361,9 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
             self.panBounds = kwargs['panBounds']
+
+        if self.panBounds:
+            self.updatePanBounds()
 
         # add the plotItem to the list
         self.plotItems.append(dataItem)
@@ -402,7 +408,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
-        self.viewBox.autoRange()
 
     def dataUpdateHandler(self, data):
         """
@@ -410,6 +415,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         updating data in the plot.
         """
         self.analysisPane.updateData(data)
+        if self.plotMode == 2 and self.autoLevels:
+            self.setHistFromData(data)
 
     def plotRandom2d(self):
         data = 100*numpy.random.random((100,100))
@@ -526,6 +533,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         Parameters:
             checked (bool): True if checkbox is checked, otherwise false
         """
+        self.autoLevels = checked
         try:
             if not checked:
                 self.hist.sigLevelsChanged.disconnect(
@@ -631,20 +639,12 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         if self.parent.transformer.active and image is not None:
             image = self.parent.transformer.transform(image)
 
-        # update panBounds if the shape of the image is different
-        try:    
-            if image.shape != self.image.shape:
-                updateBounds = True
-            else:
-                updateBounds = False
-        except AttributeError:
-            updateBounds = True
-
         # call the pyqtgraph.ImageItem.setImage() function    
         super(MagicPlotImageItem, self).setImage(image=image, **kargs)
 
-        # if we're updating the panBounds, then do that
-        if updateBounds:
+    def informViewBoundsChanged(self):
+        super(MagicPlotImageItem, self).informViewBoundsChanged()
+        if self.parent.panBounds:
             self.parent.updatePanBounds()
 
     def getData(self):
@@ -737,27 +737,12 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         if self.parent.transformer.active:
             data = self.parent.transformer.transform(data)
 
-        # test if data is different length, if so then setPanBounds
-        try:
-            if type(data) is tuple:
-                print "tuple"
-                if data[0].shape != self.getData()[0].shape:
-                    setBounds = True
-                else:
-                    setBounds = False
-            else:
-                if data.shape != self.getData()[1].shape:
-                    setBounds = True
-                else:
-                    setBounds = False
-        except AttributeError:
-            setBounds = True
-
         # setData with pyqtgraph.PlotDataItem.setData()
         super(MagicPlotDataItem, self).setData(data)
 
-        # update the panBounds if we are setting them
-        if setBounds:
+    def informViewBoundsChanged(self):
+        super(MagicPlotDataItem, self).informViewBoundsChanged()
+        if self.parent.panBounds:
             self.parent.updatePanBounds()
 
     def setColor(self, color):
