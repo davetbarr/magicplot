@@ -1,15 +1,46 @@
+"""
+================
+Analysis Plugins
+================
+
+Analysis plugins use data that is currently plotted in the MagicPlot. To write a
+plugin, simply inherit the base class ``AnalysisPlugin`` and provide at the
+minimum an ``__init__`` and a ``run()`` function. In the ``__init__`` function
+any parameters that the analysis routine requires and their defualt values
+should be set as a dictionary, and the name of the plugin should be set. This is
+done by calling ``__init__`` on the base class:: 
+
+    def __init__(self):
+        AnalysisPlugin.__init__(params={'param1': param1, 'param2': param2},
+            name='MyPlugin')
+
+``numpy`` is already imported, but if you need other modules for analysis then
+import them in ``__init__``
+
+The ``run()`` method of your plugin should take ``self.data`` and return some
+data, this will be displayed in the output box in the analysis pane. You can get
+any required parameters from ``self.params``, which is a dictionary of current
+parameter values::
+
+    def run(self):
+        input = self.data
+        param1, param2 = self.params['param1'], self.params['param2']
+        output = doSomeAnalysis(input, param1, param2)
+        return output
+
+Place ``MyPlugin.py`` into the ``MagicPlot/plugins/analysis`` directory and it
+will be autodetected by MagicPlot.
+
+See the example plugins for more information.
+"""
 from PyQt4 import QtGui, QtCore
 import numpy
 
 class AnalysisPlugin(QtGui.QWidget):
     """
     Base class for analysis plugins for MagicPlot.
-
-    To create plugin, create class that inherits this class called
-    "Plugin", ie:
-        class Plugin(AnalysisPlugin)
-    and place in MagicPlot/plugins directory. See example plugins.
     """
+
     def __init__(self, params={}, name='Plugin'):
         super(AnalysisPlugin, self).__init__()
         self.params = params
@@ -24,10 +55,10 @@ class AnalysisPlugin(QtGui.QWidget):
 
     def run(self):
         """
-        Input: self.data is what is displayed in the MagicPlot window,
-            either (x,y) for 1D or array(N,N) for 2D
+        ``self.data`` is what is displayed in the MagicPlot window,
+        either ``(x,y)`` for 1D or ``array(N,N)`` for 2D
 
-        Output: displayed in the output QTextBox:
+        Whatever is returned is displayed in the output QTextBox
         """
         pass
 

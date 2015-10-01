@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    magicplot.rst
+   analysis.rst
 
 
 Indices and tables
