@@ -743,6 +743,7 @@ class RectDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(RectDialog, self).__init__(shape=shape, parent=parent,
                                         modal=modal)
+        self.setWindowTitle("Draw Rectangle")
 
     def setupUi(self):
         self.posLabel = QtGui.QLabel("Pos (x,y)")
@@ -802,6 +803,8 @@ class LineDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(LineDialog, self).__init__(shape=shape, parent=parent,
                                          modal=modal)
+        
+        self.setWindowTitle("Draw Line")
 
     def setupUi(self):
         self.startLabel = QtGui.QLabel("Start Point")
@@ -854,6 +857,8 @@ class GridDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(GridDialog, self).__init__(shape=shape, parent=parent,
                                          modal=modal)
+        
+        self.setWindowTitle("Draw Grid")
 
     def setupUi(self):
         self.posLabel = QtGui.QLabel("Pos (x,y)")
@@ -928,6 +933,8 @@ class CircDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(CircDialog, self).__init__(shape=shape, parent=parent,
                                         modal = modal)
+        
+        self.setWindowTitle("Draw Circle")
 
     def setupUi(self):
         self.posLabel = QtGui.QLabel("Pos (x,y)")

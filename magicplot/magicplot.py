@@ -114,7 +114,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.dataUpdateSignal1d.connect(self.dataUpdateHandler)
         self.dataUpdateSignal2d.connect(self.dataUpdateHandler)
  
-    
+        self.setWindowTitle("Magic Plot") 
 
         # Initialise HistogramLUTWidget
         self.histWidget = QtGui.QWidget()
