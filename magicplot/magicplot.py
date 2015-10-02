@@ -727,17 +727,20 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.setColor(pyqtgraph.mkColor(kwargs['color']))
         self.originalData = None
 
-    def setData(self, data):
+    def setData(self, *args, **kargs):
         """
         Extension of pyqtgraph.PlotDataItem.setData to allow the
         application of transforms before data is set.
         """
+        data = args[0]
         # transform if transformer is active
-        if self.parent.transformer.active:
+        if self.parent.transformer.active and data is not None:
             data = self.parent.transformer.transform(data)
+            super(MagicPlotDataItem, self).setData(data, **kargs)
+            return
 
         # setData with pyqtgraph.PlotDataItem.setData()
-        super(MagicPlotDataItem, self).setData(data)
+        super(MagicPlotDataItem, self).setData(*args, **kargs)
 
     def informViewBoundsChanged(self):
         super(MagicPlotDataItem, self).informViewBoundsChanged()
