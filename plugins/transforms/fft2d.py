@@ -8,4 +8,4 @@ class Plugin(TransformPlugin):
         if len(self.data) == 2:
             raise('Only works with 2D plts')
         else:
-            return abs(numpy.fft.fft2(self.data))
+            return abs(numpy.fft.fftshift(numpy.fft.fft2(self.data)))
