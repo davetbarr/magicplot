@@ -3,20 +3,22 @@ import os
 # SRC_PATH = os.path.dirname(os.path.abspath(__file__))
 # os.system("pyuic4 {0}/magicPlot.ui > {0}/magicPlot_ui.py".format(SRC_PATH))
 
-import magicPlot_ui
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except ImportError:
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
+
+PATH = os.path.dirname(os.path.abspath(__file__))
+Ui_MagicPlot= uic.loadUiType(os.path.join(PATH,"magicPlot.ui"))[0]
+# import magicPlot_ui
 import shapeHolder
 import shapeDrawer
 import analysisPane
 import transforms
-
-# Try importing PyQt5, if not fall back to PyQt4
-try:
-    from PyQt5 import QtCore, QtGui, QtWidgets
-    PYQTv = 5
-except ImportError:
-    from PyQt4 import QtCore, QtGui
-    QtWidgets = QtGui
-    PyQTv = 4
 
 import pyqtgraph
 import numpy
@@ -70,7 +72,7 @@ def plot(*args, **kwargs):
     #     QtGui.QApplication.instance().exec_()
     return item
 
-class MagicPlot(QtWidgets.QWidget, magicPlot_ui.Ui_MagicPlot):
+class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
     """
     A MagicPlot widget that can be run in a window or embedded.
 
