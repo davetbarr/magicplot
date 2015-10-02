@@ -1,9 +1,45 @@
+"""
+=================
+Transform Plugins
+=================
+
+Transform plugins act on data before it is plotted. To write a transform plugin,
+create a class ``Plugin`` that inherits the base class ``TransformPlugin`` and
+provide an ``__init__`` and a ``run()`` function. 
+
+In the ``__init__`` function call the ``__init__`` of the base class, and
+provide parameters and default values as a dictionary, as well as a name for the
+plugin::
+
+    class Plugin(TransformPlugin):
+        def __init__(self):
+            TransformPlugin.__init__(
+                params={'param1': param1, 'param2': param2}, 
+                name ='MyTransform')
+
+If any modules are needed (other than ``numpy``, which is already imported),
+import them here. The ``params`` can be changed by the user through the
+transforms dialog.
+
+The ``run()`` method should take ``self.data`` as an input and return the
+transformed data. Any parameters can be obtained from ``self.params``::
+
+    def run(self):
+        input = self.data
+        param1, param2 = self.params['param1'], self.params['param2']
+        output = transform(input, param1, param2)
+        return output
+
+Place the file containing the class into the ``MagicPlot/plugins/transforms``
+directory and it will be autodetected by MagicPlot.
+
+See the example plugins in the transforms directory for more information.
+"""
+
 import sys
 from PyQt4 import QtGui, QtCore
 import numpy
 import os
-import pickle
-import cPickle
 import copy
 PATH = os.path.dirname(os.path.abspath(__file__))
 

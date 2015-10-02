@@ -13,6 +13,7 @@ Contents:
 
    magicplot.rst
    analysis.rst
+   transforms.rst
 
 
 Indices and tables
