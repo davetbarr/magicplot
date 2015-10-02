@@ -181,7 +181,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
  # Methods to setup plot areaD
  ##################################
     def set1dPlot(self):
-        print("Set 1d Plot")
+        logging.debug("Set 1d Plot")
         self.deletePlotItem()
         self.plotView = pyqtgraph.PlotWidget()
         # self.plotObj = self.plotView.plotItem.plot()
@@ -193,7 +193,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotItems = []
 
     def set2dPlot(self):
-        print("Set 2d Plot")
+        logging.debug("Set 2d Plot")
         self.deletePlotItem()
         self.plotView = pyqtgraph.PlotWidget()
         # self.plotItem = pyqtgraph.ImageItem()
