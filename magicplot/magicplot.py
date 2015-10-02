@@ -12,10 +12,8 @@ import transforms
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
-import warnings
 import logging
 
-warnings.filterwarnings('ignore')
 
 
 # set default colourmaps available
