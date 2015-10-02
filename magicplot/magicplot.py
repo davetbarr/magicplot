@@ -409,6 +409,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
 
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
+
+
     def dataUpdateHandler(self, data):
         """
         Connected to the dataUpdate1d and dataUpdate2d signals, handles
