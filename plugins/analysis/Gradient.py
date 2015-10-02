@@ -8,7 +8,11 @@ class Plugin(AnalysisPlugin):
     def run(self):
         if len(self.data) !=2:
             raise Exception('Only works with 1D plots')
+
+        ################################################
         slope, intercept, rvalue, pvalue, stderr = linregress(
                 self.data[0], self.data[1])
+        ##################################################
+
         return {'Gradient': slope, 'Intercept': intercept,
                 'Standard Error': stderr}
