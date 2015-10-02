@@ -9,7 +9,15 @@ import shapeDrawer
 import analysisPane
 import transforms
 
-from PyQt4 import QtCore, QtGui
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+    PYQTv = 5
+except ImportError:
+    from PyQt4 import QtCore, QtGui
+    QtWidgets = QtGui
+    PyQTv = 4
+
 import pyqtgraph
 import numpy
 import warnings
@@ -62,7 +70,7 @@ def plot(*args, **kwargs):
     #     QtGui.QApplication.instance().exec_()
     return item
 
-class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
+class MagicPlot(QtWidgets.QWidget, magicPlot_ui.Ui_MagicPlot):
     """
     A MagicPlot widget that can be run in a window or embedded.
 
@@ -117,24 +125,24 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     
 
         # Initialise HistogramLUTWidget
-        self.histWidget = QtGui.QWidget()
+        self.histWidget = QtWidgets.QWidget()
         hist = pyqtgraph.HistogramLUTWidget()
-        self.histWidget.maxLevelBox = QtGui.QDoubleSpinBox()
+        self.histWidget.maxLevelBox = QtWidgets.QDoubleSpinBox()
         self.histWidget.maxLevelBox.valueChanged.connect(self.setHistFromBoxes)
-        self.histWidget.minLevelBox = QtGui.QDoubleSpinBox()
+        self.histWidget.minLevelBox = QtWidgets.QDoubleSpinBox()
         self.histWidget.minLevelBox.valueChanged.connect(self.setHistFromBoxes)
         self.histWidget.maxLevelBox.setRange(-10000,10000)
         self.histWidget.minLevelBox.setRange(-10000,10000)
-        self.histWidget.histToggle = QtGui.QCheckBox('Auto Levels')
+        self.histWidget.histToggle = QtWidgets.QCheckBox('Auto Levels')
         self.histWidget.histToggle.setChecked(True)
         self.histWidget.histToggle.toggled.connect(self.activateHistogram)
         self.hist = hist.item
-        boxLayout = QtGui.QGridLayout()
-        boxLayout.addWidget(QtGui.QLabel('Max'), 0, 0)
+        boxLayout = QtWidgets.QGridLayout()
+        boxLayout.addWidget(QtWidgets.QLabel('Max'), 0, 0)
         boxLayout.addWidget(self.histWidget.maxLevelBox, 0, 1)
-        boxLayout.addWidget(QtGui.QLabel('Min'), 1, 0)
+        boxLayout.addWidget(QtWidgets.QLabel('Min'), 1, 0)
         boxLayout.addWidget(self.histWidget.minLevelBox, 1, 1)
-        histLayout = QtGui.QVBoxLayout()
+        histLayout = QtWidgets.QVBoxLayout()
         histLayout.addWidget(hist)
         histLayout.addLayout(boxLayout)
         histLayout.addWidget(self.histWidget.histToggle)
@@ -149,16 +157,16 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.analysisPane.hide()
 
         # Context menu for showing panes
-        self.showMenu = QtGui.QMenu('Show...')
-        showShapes = QtGui.QAction('Shapes', self)
+        self.showMenu = QtWidgets.QMenu('Show...')
+        showShapes = QtWidgets.QAction('Shapes', self)
         showShapes.setCheckable(True)
         showShapes.toggled.connect(self.shapeDrawer.setVisible)
         self.showMenu.addAction(showShapes)
-        showHist = QtGui.QAction('Histogram', self)
+        showHist = QtWidgets.QAction('Histogram', self)
         showHist.setCheckable(True)
         showHist.toggled.connect(self.histWidget.setVisible)
         self.showMenu.addAction(showHist)
-        showAnalysis = QtGui.QAction('Analysis', self)
+        showAnalysis = QtWidgets.QAction('Analysis', self)
         showAnalysis.setCheckable(True)
         showAnalysis.toggled.connect(self.analysisPane.setVisible)
         self.showMenu.addAction(showAnalysis)
@@ -791,11 +799,11 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.originalData = None
 
 if __name__ == "__main__":
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     w = MagicPlot()
     w.show()
     # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-    #     QtGui.QApplication.instance().exec_()
+    #     QtWidgets.QApplication.instance().exec_()
 
     try:
         __IPYTHON__
@@ -804,4 +812,4 @@ if __name__ == "__main__":
 
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         if not __IPYTHON__:
-            QtGui.QApplication.instance().exec_()
+            QtWidgets.QApplication.instance().exec_()
