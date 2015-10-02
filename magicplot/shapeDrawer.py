@@ -102,6 +102,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog = CircDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyCircChanges)
             self.dialog.finished.connect(self.applyCircChanges)
+        
+
 
     def applyGridChanges(self, *args):
         """
@@ -701,6 +703,11 @@ class ShapeDialog(QtGui.QDialog):
             self.exec_()
         else:
             self.show()
+
+        # Put the dialog over the shape drawer to avoid it obscuring the plot
+        shapeDrawerPosX = parent.window().pos().x() + parent.pos().x()
+        shapeDrawerPosY = parent.window().pos().y() + parent.pos().y()
+        self.move(shapeDrawerPosX, shapeDrawerPosY)
 
     def getColor(self):
         newColor = QtGui.QColorDialog().getColor(initial=self.color)
