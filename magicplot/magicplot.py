@@ -12,10 +12,8 @@ import transforms
 from PyQt4 import QtCore, QtGui
 import pyqtgraph
 import numpy
-import warnings
 import logging
 
-warnings.filterwarnings('ignore')
 
 
 # set default colourmaps available
@@ -408,6 +406,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
+
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
+
 
     def dataUpdateHandler(self, data):
         """
