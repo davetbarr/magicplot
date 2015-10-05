@@ -700,6 +700,13 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
             self.setData(self.originalData)
             self.originalData = None
 
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
+
+
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
     A class that defines a set of 1D plot data, wrapper around
@@ -794,6 +801,12 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         else:
             self.setData(self.originalData)
             self.originalData = None
+
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
 
 if __name__ == "__main__":
     app = QtGui.QApplication([])
