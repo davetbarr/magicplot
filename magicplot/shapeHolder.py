@@ -79,7 +79,7 @@ def getShapeName(shape):
         c = shape.rect()
         center = c.center()
         radius = c.width()/2
-        return "Circle @ Center ({:.1f}, {:.1f}), Radius {:.1f}".format(
+        return "Elipse @ Center ({:.1f}, {:.1f}), Radius {:.1f}".format(
                 center.x(), center.y(), radius)
     else:
         return "Unkown Shape"

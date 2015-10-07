@@ -33,6 +33,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.drawLineButton.clicked.connect(self.drawLine)
         self.drawGridButton.clicked.connect(self.drawGrid)
         self.drawCircleButton.clicked.connect(self.drawCirc)
+        self.drawElipseButton.clicked.connect(self.drawElipse)
 
         # Setup list to hold shapes
         self.shapes = shapeHolder.ShapeContainer(self)
@@ -195,6 +196,26 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             xPos, yPos, r, color, result = self.dialog.initialValues
 
         self.dialog.shape.setRect(xPos-r, yPos-r, 2*r, 2*r)
+        self.dialog.shape.setPen(QtGui.QPen(color))
+
+    def applyElipseChanges(self, *args):
+        """
+        Apply changes to an elipse when closing dialog or changing values
+        in dialog.
+
+        If the dialog is rejected, the shape will be returned to its
+        initial state.
+        """
+        try:
+            code = args[0]
+        except IndexError:
+            code = None
+        if code == None or code == 1:
+            xPos, yPos, rx, ry, color, result = self.dialog.getValues()
+        elif code == 0:
+            xPos, yPos, rx, ry, color, result = self.dialog.initialValues
+
+        self.dialog.shape.setRect(xPos-rx, yPos-ry, 2*rx, 2*ry)
         self.dialog.shape.setPen(QtGui.QPen(color))
 
 # Rectangle drawing methods
@@ -610,6 +631,99 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
             self.shapes.updateView()
 
+########## Elipse Drawing ###########
+
+    def addElipse(self, x, y, rx, ry, color):
+        elipse = QtGui.QGraphicsEllipseItem(
+                        QtCore.QRectF(x-rx, y-ry, 2*rx, 2*ry))
+        self.shapes.append(elipse)
+        elipse.setPen(QtGui.QPen(color))
+        self.plotView.addItem(elipse)
+        return elipse
+
+    def drawElipse(self):
+        self.dialog = ElipseDialog(parent=self)
+        self.scene.sigMouseClicked.connect(self.mouseClicked_elipse1)
+        self.dialog.accepted.connect(self.drawElipseFromValues)
+        self.dialog.rejected.connect(self.cancelDrawElipse)
+
+    def cancelDrawElipse(self):
+        try:
+            self.scene.sigMouseClicked.disconnect(self.mouseClicked_elipse1)
+        except TypeError:
+            pass
+
+    def drawElipseFromValues(self):
+        x, y, rx, ry, color, accepted = self.dialog.getValues()
+        self.shapes.append(QtGui.QGraphicsEllipseItem(
+                        QtCore.QRectF(x-rx, y-ry, 2*rx, 2*ry)))
+        self.shapes[-1].setPen(QtGui.QPen(color))
+        self.plotView.addItem(self.shapes[-1])
+
+    def updateElipse(self, x, y, rx, ry):
+        self.shapes[-1].setRect(QtCore.QRectF(x-rx, y-ry, 2*rx, 2*ry))
+        self.dialog.setValuesFromShape()
+
+    def mouseMoved_elipse(self, pos):
+        imgPos = self.viewBox.mapSceneToView(pos)
+        scene = self.scene
+        # Only update when mouse is in image
+        if      (pos.y() > 0 and pos.x() > 0
+                and pos.y() < scene.height
+                and pos.x() < scene.width):
+
+            self.mousePos = (imgPos.x(), imgPos.y())
+
+#            r = numpy.sqrt((self.mousePos[0]-self.elipseCenter[0])**2 +
+#                        (self.mousePos[1]-self.elipseCenter[1])**2)
+            rx = self.mousePos[0] - self.elipseCenter[0]
+            ry = self.mousePos[1] - self.elipseCenter[1]
+
+            self.updateElipse(self.elipseCenter[0], self.elipseCenter[1], rx, ry)
+
+    def mouseClicked_elipse1(self, event):
+        self.dialog.accepted.disconnect(self.drawElipseFromValues)
+        self.dialog.accepted.connect(self.applyElipseChanges)
+        self.dialog.applySig.connect(self.applyElipseChanges)
+        pos = event.scenePos()
+        scene = self.scene
+        imgPos = self.viewBox.mapSceneToView(pos)
+
+        if      (pos.y() > 0 and pos.x() > 0
+                and pos.y() < scene.height
+                and pos.x() < scene.width):
+
+            self.elipseCenter = (imgPos.x(), imgPos.y())
+            self.shapes.append(QtGui.QGraphicsEllipseItem(
+                    QtCore.QRectF(imgPos.x(), imgPos.y(), 0, 0)))
+            self.shapes[-1].setPen(QtGui.QPen(self.dialog.color))
+            self.shapes[-1].setZValue(100)
+
+            self.plotView.addItem(self.shapes[-1])
+            self.dialog.setShape(self.shapes[-1])
+
+            self.scene.sigMouseMoved.connect(
+                    self.mouseMoved_elipse)
+            self.scene.sigMouseClicked.disconnect(
+                    self.mouseClicked_elipse1)
+            self.scene.sigMouseClicked.connect(
+                    self.mouseClicked_elipse2)
+
+    def mouseClicked_elipse2(self, event):
+        pos = event.pos()
+        scene = self.scene
+
+        if      (pos.y() > 0 and pos.x() > 0
+                and pos.y() < scene.height
+                and pos.x() < scene.width):
+
+            self.scene.sigMouseMoved.disconnect(
+                    self.mouseMoved_elipse)
+            self.scene.sigMouseClicked.disconnect(
+                    self.mouseClicked_elipse2)
+
+            self.shapes.updateView()
+
 ########### ROI tools #################################
 
     def setROI(self, checked):
@@ -986,6 +1100,66 @@ class CircDialog(ShapeDialog):
             self.radiusBox.valueChanged.connect(self.apply)
         else:
             logging.info("No shape!")
+
+class ElipseDialog(ShapeDialog):
+
+    def __init__(self, shape=None, parent=None, modal=False):
+        super(ElipseDialog, self).__init__(shape=shape, parent=parent,
+                                        modal=modal)
+        
+        self.setWindowTitle("Draw Elipse")
+
+    def setupUi(self):
+        self.posLabel = QtGui.QLabel("Pos (x,y)")
+        self.xPosBox = QtGui.QDoubleSpinBox()
+        self.yPosBox = QtGui.QDoubleSpinBox()
+        self.radiusLabel = QtGui.QLabel("Radius (x,y)")
+        self.radiusXBox = QtGui.QDoubleSpinBox()
+        self.radiusYBox = QtGui.QDoubleSpinBox()
+
+        self.layout.addWidget(self.posLabel)
+        self.layout.addWidget(self.xPosBox)
+        self.layout.addWidget(self.yPosBox)
+        self.layout.addWidget(self.radiusLabel)
+        self.layout.addWidget(self.radiusXBox)
+        self.layout.addWidget(self.radiusYBox)
+
+        self.layout.addWidget(self.colorButton)
+        self.layout.addWidget(self.buttons)
+        self.setDefaultRange(
+                [self.xPosBox, self.yPosBox, self.radiusXBox, self.radiusYBox])
+        self.setLayout(self.layout)
+
+    def setValuesFromShape(self):
+        try:
+            elipse = self.shape.rect()
+            rx = elipse.width()/2. # Better way of doing this?
+            ry = elipse.height()/2.
+            x, y = elipse.x()+rx, elipse.y()+ry
+            self.xPosBox.setValue(x)
+            self.yPosBox.setValue(y)
+            self.radiusXBox.setValue(rx)
+            self.radiusYBox.setValue(ry)
+        except AttributeError:
+            logging.info('No shape')
+
+    def getValues(self):
+        return (self.xPosBox.value(),
+                self.yPosBox.value(),
+                self.radiusXBox.value(),
+                self.radiusYBox.value(),
+                self.color,
+                self.result())
+
+    def setUpdateBoxes(self):
+        if self.shape != None:
+            self.xPosBox.valueChanged.connect(self.apply)
+            self.yPosBox.valueChanged.connect(self.apply)
+            self.radiusXBox.valueChanged.connect(self.apply)
+            self.radiusYBox.valueChanged.connect(self.apply)
+        else:
+            logging.info("No shape!")
+
 
 class Grid(QtGui.QGraphicsRectItem):
 

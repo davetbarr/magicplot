@@ -506,6 +506,24 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         qcolor = pyqtgraph.mkColor(color)
         circ = self.shapeDrawer.addCirc(x, y, r, color=qcolor)
         return circ
+    
+    def addElipse(self, x, y, rx, ry, color="r"):
+        """
+        Add an elipse to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of elipse center
+            y (float): y co-ordinate of elipse center
+            rx (float): radius of elipse in x direction
+            ry (float): radius of elipse in y direction
+            color (Optional[str]): color of circle, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsEllipseItem - the circle
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        elipse = self.shapeDrawer.addElipse(x, y, rx, ry, color=qcolor)
+        return elipse
 
 ############ Histogram ###############
 
