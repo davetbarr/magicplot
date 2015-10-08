@@ -744,31 +744,14 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         parent (QObject): the parent object of this DataItem
 
         originalData (numpy.ndarray): When transforms are applied, the
-            pre-transformed data is kept and replotted if the tranforms
-            are turned off
-
-    """
-    def __init__(self, parent, *args, **kwargs):
-        self.parent = parent
-        super(MagicPlotDataItem, self).__init__(*args, **kwargs)
-        if 'type' in kwargs.keys():
-            self.setType(kwargs['type'])
-        if 'color' in kwargs.keys():
-            self.setColor(pyqtgraph.mkColor(kwargs['color']))
-        self.originalData = None
-
-    def setData(self, *args, **kargs):
-        """
-        Extension of pyqtgraph.PlotDataItem.setData to allow the
-        application of transforms before data is set.
-        """
         data = args[0]
         # transform if transformer is active
         if self.parent.transformer.active and data is not None:
             data = self.parent.transformer.transform(data)
             super(MagicPlotDataItem, self).setData(data, **kargs)
             return
-
+    """
+    def __init__(self, *args, **kargs):
         # setData with pyqtgraph.PlotDataItem.setData()
         super(MagicPlotDataItem, self).setData(*args, **kargs)
 
