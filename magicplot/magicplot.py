@@ -22,10 +22,8 @@ import transforms
 
 import pyqtgraph
 import numpy
-import warnings
 import logging
 
-warnings.filterwarnings('ignore')
 
 
 # set default colourmaps available
@@ -124,7 +122,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.dataUpdateSignal1d.connect(self.dataUpdateHandler)
         self.dataUpdateSignal2d.connect(self.dataUpdateHandler)
  
-    
+        self.setWindowTitle("Magic Plot") 
 
         # Initialise HistogramLUTWidget
         self.histWidget = QtWidgets.QWidget()
@@ -191,7 +189,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
  # Methods to setup plot areaD
  ##################################
     def set1dPlot(self):
-        print("Set 1d Plot")
+        logging.debug("Set 1d Plot")
         self.deletePlotItem()
         self.plotView = pyqtgraph.PlotWidget()
         # self.plotObj = self.plotView.plotItem.plot()
@@ -203,7 +201,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotItems = []
 
     def set2dPlot(self):
-        print("Set 2d Plot")
+        logging.debug("Set 2d Plot")
         self.deletePlotItem()
         self.plotView = pyqtgraph.PlotWidget()
         # self.plotItem = pyqtgraph.ImageItem()
@@ -419,6 +417,13 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItem)
 
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
+
+
     def dataUpdateHandler(self, data):
         """
         Connected to the dataUpdate1d and dataUpdate2d signals, handles
@@ -511,6 +516,24 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         qcolor = pyqtgraph.mkColor(color)
         circ = self.shapeDrawer.addCirc(x, y, r, color=qcolor)
         return circ
+    
+    def addElipse(self, x, y, rx, ry, color="r"):
+        """
+        Add an elipse to the plot.
+
+        Parameters:
+            x (float): x co-ordinate of elipse center
+            y (float): y co-ordinate of elipse center
+            rx (float): radius of elipse in x direction
+            ry (float): radius of elipse in y direction
+            color (Optional[str]): color of circle, see pyqtgraph.mkColor
+
+        Returns:
+            QGraphicsEllipseItem - the circle
+        """
+        qcolor = pyqtgraph.mkColor(color)
+        elipse = self.shapeDrawer.addElipse(x, y, rx, ry, color=qcolor)
+        return elipse
 
 ############ Histogram ###############
 
@@ -705,6 +728,13 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
             self.setData(self.originalData)
             self.originalData = None
 
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
+
+
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
     A class that defines a set of 1D plot data, wrapper around
@@ -724,31 +754,14 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         parent (QObject): the parent object of this DataItem
 
         originalData (numpy.ndarray): When transforms are applied, the
-            pre-transformed data is kept and replotted if the tranforms
-            are turned off
-
-    """
-    def __init__(self, parent, *args, **kwargs):
-        self.parent = parent
-        super(MagicPlotDataItem, self).__init__(*args, **kwargs)
-        if 'type' in kwargs.keys():
-            self.setType(kwargs['type'])
-        if 'color' in kwargs.keys():
-            self.setColor(pyqtgraph.mkColor(kwargs['color']))
-        self.originalData = None
-
-    def setData(self, *args, **kargs):
-        """
-        Extension of pyqtgraph.PlotDataItem.setData to allow the
-        application of transforms before data is set.
-        """
         data = args[0]
         # transform if transformer is active
         if self.parent.transformer.active and data is not None:
             data = self.parent.transformer.transform(data)
             super(MagicPlotDataItem, self).setData(data, **kargs)
             return
-
+    """
+    def __init__(self, *args, **kargs):
         # setData with pyqtgraph.PlotDataItem.setData()
         super(MagicPlotDataItem, self).setData(*args, **kargs)
 
@@ -799,6 +812,12 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         else:
             self.setData(self.originalData)
             self.originalData = None
+
+    def updatePlot(self):
+        """
+        Wrapper around QApplication.processEvents() so that live plotting works
+        """
+        QtGui.QApplication.instance().processEvents()
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

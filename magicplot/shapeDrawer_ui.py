@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/apr/CfAI/magicPlot/magicplot/shapeDrawer.ui'
+# Form implementation generated from reading ui file 'shapeDrawer.ui'
 #
-# Created: Mon Sep 14 15:29:34 2015
+# Created: Wed Oct  7 10:25:53 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_ShapeDrawer(object):
     def setupUi(self, ShapeDrawer):
         ShapeDrawer.setObjectName(_fromUtf8("ShapeDrawer"))
-        ShapeDrawer.resize(128, 317)
+        ShapeDrawer.resize(137, 317)
         self.gridLayout = QtGui.QGridLayout(ShapeDrawer)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.verticalLayout = QtGui.QVBoxLayout()
@@ -43,6 +43,9 @@ class Ui_ShapeDrawer(object):
         self.drawCircleButton = QtGui.QPushButton(ShapeDrawer)
         self.drawCircleButton.setObjectName(_fromUtf8("drawCircleButton"))
         self.verticalLayout.addWidget(self.drawCircleButton)
+        self.drawElipseButton = QtGui.QPushButton(ShapeDrawer)
+        self.drawElipseButton.setObjectName(_fromUtf8("drawElipseButton"))
+        self.verticalLayout.addWidget(self.drawElipseButton)
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(ShapeDrawer)
@@ -54,4 +57,5 @@ class Ui_ShapeDrawer(object):
         self.drawLineButton.setText(_translate("ShapeDrawer", "Line", None))
         self.drawGridButton.setText(_translate("ShapeDrawer", "Grid", None))
         self.drawCircleButton.setText(_translate("ShapeDrawer", "Circle", None))
+        self.drawElipseButton.setText(_translate("ShapeDrawer", "Elipse", None))
 

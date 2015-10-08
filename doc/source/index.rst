@@ -14,6 +14,7 @@ Contents:
    magicplot.rst
    analysis.rst
    transforms.rst
+   shapes.rst
 
 
 Indices and tables
