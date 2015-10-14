@@ -8,5 +8,5 @@ Features
 - Auto-detection of line plots, images or scatter plots
 - Annotate plots with rectangles, circles, lines and grids
 - Real-time updating Histogram describing data
-- Colour schemes can be changed in real-time be the user
+- Colour schemes can be changed in real-time by the user
 - For interactive or embedded use
