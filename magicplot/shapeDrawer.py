@@ -9,7 +9,7 @@ import os
 try:
     from PyQt5 import QtCore, QtGui, QtWidgets, uic
     PYQTv = 5
-except ImportError:
+except (ImportError, RuntimeError):
     from PyQt4 import QtCore, QtGui, uic
     QtWidgets = QtGui
     PyQTv = 4
