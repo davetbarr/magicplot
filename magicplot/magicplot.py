@@ -751,9 +751,10 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             super(MagicPlotDataItem, self).setData(data, **kargs)
             return
     """
-    def __init__(self, *args, **kargs):
+    def __init__(self, parent, *args, **kargs):
         # setData with pyqtgraph.PlotDataItem.setData()
-        super(MagicPlotDataItem, self).setData(*args, **kargs)
+        self.parent = parent
+        super(MagicPlotDataItem, self).__init__(*args, **kargs)
 
     def informViewBoundsChanged(self):
         super(MagicPlotDataItem, self).informViewBoundsChanged()
