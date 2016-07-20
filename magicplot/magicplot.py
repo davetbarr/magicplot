@@ -20,7 +20,7 @@ import shapeDrawer
 import analysisPane
 import transforms
 
-import pyqtgraph
+from . import pyqtgraph
 import numpy
 import logging
 
