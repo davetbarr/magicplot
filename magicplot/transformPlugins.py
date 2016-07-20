@@ -260,7 +260,7 @@ class TransformList(QtCore.QAbstractListModel):
         for i in os.listdir(path):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
-                exec(f, globals())
+                exec(f.read(), globals())
                 plugin = Plugin()
                 self.append(plugin)
 
