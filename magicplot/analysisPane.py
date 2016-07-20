@@ -13,9 +13,9 @@ except ImportError:
     QtWidgets = QtGui
     PyQTv = 4
 
-from analysisPlugins import AnalysisPlugin
+from .analysisPlugins import AnalysisPlugin
+from . import pyqtgraph
 
-import pyqtgraph
 import numpy
 import magicplot
 import logging
@@ -50,7 +50,7 @@ class AnalysisPane(QtWidgets.QWidget):
         for i in os.listdir(path):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
-                exec(f, globals())
+                exec(f.read(), globals())
                 self.pluginList.append(Plugin())
 
     def updateData(self, data):

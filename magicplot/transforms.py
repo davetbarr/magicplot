@@ -8,7 +8,7 @@ except ImportError:
     QtWidgets = QtGui
     PyQTv = 4
 # from PyQt4 import QtCore, QtGui
-import transformPlugins
+from . import transformPlugins
 
 import copy
 

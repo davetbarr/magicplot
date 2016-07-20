@@ -19,8 +19,8 @@ Ui_ShapeDrawer= uic.loadUiType(os.path.join(PATH,"shapeDrawer.ui"))[0]
 # import shapeDrawer_ui
 
 # from PyQt4 import QtCore, QtGui
-from pyqtgraph import RectROI, CircleROI, LineSegmentROI
-import shapeHolder
+from .pyqtgraph import RectROI, CircleROI, LineSegmentROI
+from . import shapeHolder
 import numpy
 import logging
 

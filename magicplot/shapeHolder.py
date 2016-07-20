@@ -9,7 +9,7 @@ except (ImportError, RuntimeError):
     PyQTv = 4
 
 
-from shapeDrawer import Grid
+from .shapeDrawer import Grid
 
 
 class ShapeContainer(QtCore.QAbstractListModel):

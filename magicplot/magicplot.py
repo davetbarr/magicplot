@@ -15,10 +15,7 @@ except (ImportError, RuntimeError):
 PATH = os.path.dirname(os.path.abspath(__file__))
 Ui_MagicPlot= uic.loadUiType(os.path.join(PATH,"magicPlot.ui"))[0]
 # import magicPlot_ui
-import shapeHolder
-import shapeDrawer
-import analysisPane
-import transforms
+from . import shapeHolder, shapeDrawer, analysisPane, transforms
 
 from . import pyqtgraph
 import numpy
