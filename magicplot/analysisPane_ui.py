@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -74,4 +74,3 @@ class Ui_AnalysisPane(object):
         self.updateButton.setText(_translate("AnalysisPane", "Update", None))
         AnalysisPane.setTabText(AnalysisPane.indexOf(self.gradientTab), _translate("AnalysisPane", "Tab 1", None))
         AnalysisPane.setTabText(AnalysisPane.indexOf(self.tab), _translate("AnalysisPane", "Tab 2", None))
-

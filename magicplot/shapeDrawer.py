@@ -6,7 +6,7 @@ import os
 # os.system("pyuic4 {0}/shapeDrawer.ui > {0}/shapeDrawer_ui.py".format(SRC_PATH))
 import shapeDrawer_ui
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 from pyqtgraph import RectROI, CircleROI, LineSegmentROI
 import shapeHolder
 import numpy
@@ -103,7 +103,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog = CircDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyCircChanges)
             self.dialog.finished.connect(self.applyCircChanges)
-        
+
 
 
     def applyGridChanges(self, *args):
@@ -265,8 +265,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         # Only update when mouse is in image
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
 
             self.mousePos = (imgPos.x(), imgPos.y())
@@ -289,8 +289,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         imgPos = self.viewBox.mapSceneToView(pos)
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.rectStartPos = (imgPos.x(), imgPos.y())
             self.shapes.append(QtGui.QGraphicsRectItem(
@@ -317,8 +317,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         #imgPos = self.plotItem.mapFromScene(pos)
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.scene.sigMouseMoved.disconnect(
                     self.mouseMoved_rect)
@@ -372,8 +372,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
 
         # Only update when mouse is in image
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < self.scene.height
-                and pos.x() < self.scene.width):
+                and pos.y() < self.scene.height()
+                and pos.x() < self.scene.width()):
 
             self.mousePos = (imgPos.x(), imgPos.y())
 
@@ -391,8 +391,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         pos = event.scenePos()
         imgPos = self.viewBox.mapSceneToView(pos)
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < self.scene.height
-                and pos.x() < self.scene.width):
+                and pos.y() < self.scene.height()
+                and pos.x() < self.scene.width()):
 
             self.lineStartPos = (imgPos.x(), imgPos.y())
 
@@ -420,8 +420,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         pos = event.scenePos()
         imgPos = self.viewBox.mapSceneToView(pos)
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < self.scene.height
-                and pos.x() < self.scene.width):
+                and pos.y() < self.scene.height()
+                and pos.x() < self.scene.width()):
             self.scene.sigMouseMoved.disconnect(
                     self.mouseMoved_line)
             self.scene.sigMouseClicked.disconnect(
@@ -473,8 +473,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         # Only update when mouse is in image
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
 
             self.mousePos = (imgPos.x(), imgPos.y())
@@ -497,8 +497,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         imgPos = self.viewBox.mapSceneToView(pos)
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.gridStartPos = (imgPos.x(), imgPos.y())
             rows, cols = self.dialog.getRowsCols()
@@ -530,8 +530,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         #imgPos = self.plotItem.mapFromScene(pos)
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.scene.sigMouseMoved.disconnect(
                     self.mouseMoved_grid)
@@ -578,8 +578,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         # Only update when mouse is in image
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.mousePos = (imgPos.x(), imgPos.y())
 
@@ -597,8 +597,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         imgPos = self.viewBox.mapSceneToView(pos)
 
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.circCenter = (imgPos.x(), imgPos.y())
             self.shapes.append(QtGui.QGraphicsEllipseItem(
@@ -621,8 +621,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
 
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.scene.sigMouseMoved.disconnect(
                     self.mouseMoved_circ)
@@ -669,8 +669,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
         # Only update when mouse is in image
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.mousePos = (imgPos.x(), imgPos.y())
 
@@ -690,8 +690,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         imgPos = self.viewBox.mapSceneToView(pos)
 
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.elipseCenter = (imgPos.x(), imgPos.y())
             self.shapes.append(QtGui.QGraphicsEllipseItem(
@@ -714,8 +714,8 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         scene = self.scene
 
         if      (pos.y() > 0 and pos.x() > 0
-                and pos.y() < scene.height
-                and pos.x() < scene.width):
+                and pos.y() < scene.height()
+                and pos.x() < scene.width()):
 
             self.scene.sigMouseMoved.disconnect(
                     self.mouseMoved_elipse)
@@ -924,7 +924,7 @@ class LineDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(LineDialog, self).__init__(shape=shape, parent=parent,
                                          modal=modal)
-        
+
         self.setWindowTitle("Draw Line")
 
     def setupUi(self):
@@ -978,7 +978,7 @@ class GridDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(GridDialog, self).__init__(shape=shape, parent=parent,
                                          modal=modal)
-        
+
         self.setWindowTitle("Draw Grid")
 
     def setupUi(self):
@@ -1054,7 +1054,7 @@ class CircDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(CircDialog, self).__init__(shape=shape, parent=parent,
                                         modal = modal)
-        
+
         self.setWindowTitle("Draw Circle")
 
     def setupUi(self):
@@ -1106,7 +1106,7 @@ class ElipseDialog(ShapeDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(ElipseDialog, self).__init__(shape=shape, parent=parent,
                                         modal=modal)
-        
+
         self.setWindowTitle("Draw Elipse")
 
     def setupUi(self):

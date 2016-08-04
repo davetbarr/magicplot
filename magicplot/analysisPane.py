@@ -7,7 +7,7 @@ import importlib
 
 from analysisPlugins import AnalysisPlugin
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 import pyqtgraph
 import numpy
 import magicplot
@@ -46,6 +46,7 @@ class AnalysisPane(QtGui.QWidget):
                 exec(f.read(), globals())
                 self.pluginList.append(Plugin())
 
+
     def updateData(self, data):
         if data is not None:
             self.data = data
@@ -69,7 +70,7 @@ class AnalysisPane(QtGui.QWidget):
                 output = i.run()
                 i.outputBox.setText(str(output))
             except Exception as e:
-                i.outputBox.setText(e.message)
+                i.outputBox.setText(e.args[0])
 
     def toggleRegion(self, checked):
         # make sure we're in 1D plotMode!
@@ -87,10 +88,10 @@ class AnalysisPane(QtGui.QWidget):
                 self.region.setVisible(False)
                 self.region.sigRegionChanged.disconnect()
                 self.updateData(None)
-                      
+
         else:
             pass
-    
+
     def initRegion(self, view):
         self.region = Region()
         self.region.setVisible(False)

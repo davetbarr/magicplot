@@ -9,7 +9,7 @@ import shapeDrawer
 import analysisPane
 import transforms
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 import pyqtgraph
 import numpy
 import logging
@@ -73,14 +73,14 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         windowPlots (list): List of additional pop-up window plots created
             by plotting Regions of Interest
 
-        plotItems (list): List of plotItems (MagicPlotDataItem) that are 
+        plotItems (list): List of plotItems (MagicPlotDataItem) that are
             currently plotted in the window. Note: only 1 MagicPlotImageItem
             can exist at a time
 
         shapeDrawer (shapeDrawer.ShapeDrawer): controls drawing of shapes on the
-            plot 
+            plot
 
-        analysisPane (analysisPane.AnalysisPane): controls data analysis plugins 
+        analysisPane (analysisPane.AnalysisPane): controls data analysis plugins
 
         transformer (transforms.Transformer): controls the application of
             transform plugins to the data
@@ -111,8 +111,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.transformer = transforms.Transformer()
         self.dataUpdateSignal1d.connect(self.dataUpdateHandler)
         self.dataUpdateSignal2d.connect(self.dataUpdateHandler)
- 
-        self.setWindowTitle("Magic Plot") 
+
+        self.setWindowTitle("Magic Plot")
 
         # Initialise HistogramLUTWidget
         self.histWidget = QtGui.QWidget()
@@ -346,7 +346,8 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
 
         except Exception as e:
             # Try to plot 2d
-            if e.message.find('array shape must be') == 0:
+            # This is rubbish, needs getting rid of
+            if e.args[0].find('array shape must be') == 0:
                 dataItem = MagicPlotImageItem(self, *args, **kwargs)
                 if self.plotMode != 2:
                     self.plotMode = 2
@@ -506,7 +507,7 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         qcolor = pyqtgraph.mkColor(color)
         circ = self.shapeDrawer.addCirc(x, y, r, color=qcolor)
         return circ
-    
+
     def addElipse(self, x, y, rx, ry, color="r"):
         """
         Add an elipse to the plot.
@@ -627,7 +628,7 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         parent (QObject): when plotting using MagicPlot.plot() or
             MagicPlot.getImageItem() this is set to the MagicPlot window
             so that transforms can be applied to the data
-    
+
     Attributes:
         parent (QObject): the parent object of this ImageItem
 
@@ -651,7 +652,7 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         pyqtgraph.PlotDataItem.setData()
         """
         self.setImage(image=data, **kwargs)
-    
+
     def setImage(self, image=None, **kargs):
         """
         Extension of pyqtgraph.ImageItem.setImage() to allow transforms to be
@@ -661,7 +662,7 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         if self.parent.transformer.active and image is not None:
             image = self.parent.transformer.transform(image)
 
-        # call the pyqtgraph.ImageItem.setImage() function    
+        # call the pyqtgraph.ImageItem.setImage() function
         super(MagicPlotImageItem, self).setImage(image, **kargs)
 
     def informViewBoundsChanged(self):
@@ -813,6 +814,7 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
 if __name__ == "__main__":
     app = QtGui.QApplication([])
     w = MagicPlot()
+    w.plot(numpy.random.random((50,50)))
     w.show()
     # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
     #     QtGui.QApplication.instance().exec_()

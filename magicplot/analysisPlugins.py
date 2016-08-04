@@ -9,7 +9,7 @@ plugin, simply create a class ``Plugin`` that inherits the base class
 function. In the ``__init__`` function any parameters that the analysis routine
 requires and their defualt values should be set as a dictionary, and the name of
 the plugin should be set. This is done by calling ``__init__`` on the base
-class:: 
+class::
 
     class Plugin(AnalysisPlugin):
         def __init__(self):
@@ -35,7 +35,7 @@ will be autodetected by MagicPlot.
 
 See the example plugins in the analysis plugins directory for more information.
 """
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 import numpy
 
 class AnalysisPlugin(QtGui.QWidget):

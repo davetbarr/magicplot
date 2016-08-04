@@ -1,6 +1,6 @@
 from __future__ import division
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 import transformPlugins
 
 import copy
@@ -29,7 +29,7 @@ class Transformer(QtCore.QObject):
         """
         Right-click context menu shown under 'Transforms'
         """
-        self.transMenu = QtGui.QMenu('Transforms')       
+        self.transMenu = QtGui.QMenu('Transforms')
         runTransforms = QtGui.QAction('Activate Transforms', self)
         runTransforms.setCheckable(True)
         runTransforms.toggled.connect(self.toggleRunning)
@@ -39,7 +39,7 @@ class Transformer(QtCore.QObject):
         self.transMenu.addAction(openDialog)
         self.transMenu.addSeparator()
 
-        # add transforms to list below other options so they can be 
+        # add transforms to list below other options so they can be
         # quickly selected and applied
         self.quickTransforms = QtGui.QActionGroup(self)
         for row, plugin in enumerate(self.tList):
@@ -58,10 +58,10 @@ class Transformer(QtCore.QObject):
         if self.aList.rowCount() != 0:
             self.aList.clear()
             activeCheck.setChecked(False)
-        row = action.data().toInt()[0]
+        row = action.data()
         self.aList.append(self.tList[row])
         activeCheck.setChecked(True)
-    
+
     def transform(self, data):
         """
         Transform data by applying the transforms in the applied
@@ -81,7 +81,7 @@ class Transformer(QtCore.QObject):
             return data
         else:
             return data
-    
+
     def openDialog(self):
         """
         Open the transforms dialog
@@ -89,12 +89,10 @@ class Transformer(QtCore.QObject):
         self.dialog = transformPlugins.TransformDialog(tList=self.tList,
                 aList=self.aList)
         self.dialog.show()
-        
+
     def toggleRunning(self, checked):
         """
         Handles the activate transforms menu option
         """
         self.active = checked
         self.sigActiveToggle.emit(checked)
-
-

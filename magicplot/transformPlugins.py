@@ -5,7 +5,7 @@ Transform Plugins
 
 Transform plugins act on data before it is plotted. To write a transform plugin,
 create a class ``Plugin`` that inherits the base class ``TransformPlugin`` and
-provide an ``__init__`` and a ``run()`` function. 
+provide an ``__init__`` and a ``run()`` function.
 
 In the ``__init__`` function call the ``__init__`` of the base class, and
 provide parameters and default values as a dictionary, as well as a name for the
@@ -14,7 +14,7 @@ plugin::
     class Plugin(TransformPlugin):
         def __init__(self):
             TransformPlugin.__init__(
-                params={'param1': param1, 'param2': param2}, 
+                params={'param1': param1, 'param2': param2},
                 name ='MyTransform')
 
 If any modules are needed (other than ``numpy``, which is already imported),
@@ -37,7 +37,7 @@ See the example plugins in the transforms directory for more information.
 """
 
 import sys
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 import numpy
 import os
 import copy
@@ -72,7 +72,7 @@ class TransformPlugin(object):
             self.paramBoxList[i] = box
             self.layout.addWidget(label)
             self.layout.addWidget(box)
-    
+
 class TransformDialog(QtGui.QDialog):
     """
     Dialog that shows available transforms in a QListView, and active
@@ -122,7 +122,7 @@ class TransformListView(QtGui.QListView):
         index = self.indexAt(event.pos())
         if not index.isValid():
             return
-        
+
         mimeData = QtCore.QMimeData()
         mimeData.setData("text/plain", str(index.row()))
 
@@ -207,7 +207,7 @@ class TransformList(QtCore.QAbstractListModel):
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         if not index.isValid() or role!=QtCore.Qt.DisplayRole: return False
-        
+
         self.tList[index.row()]=value.name
         self.dataChanged.emit(index,index)
         return True
@@ -225,7 +225,7 @@ class TransformList(QtCore.QAbstractListModel):
 
         self.beginInsertRows(parent, beginRow, endRow)
 
-        for i in xrange(beginRow, endRow+1): self.tList.insert(i,plugin) 
+        for i in xrange(beginRow, endRow+1): self.tList.insert(i,plugin)
 
         self.endInsertRows()
         return True
@@ -239,7 +239,7 @@ class TransformList(QtCore.QAbstractListModel):
 
         self.beginRemoveRows(parent, beginRow, endRow)
 
-        for i in xrange(beginRow, endRow+1): self.tList.pop(i)
+        for i in range(beginRow, endRow+1): self.tList.pop(i)
 
         self.endRemoveRows()
         return True
@@ -265,7 +265,7 @@ class TransformList(QtCore.QAbstractListModel):
                 self.append(plugin)
 
     def dropMimeData(self, data, action, row, column, parent):
-        tListRow = int(data.data("text/plain")) 
+        tListRow = int(data.data("text/plain"))
         plugin = copy.copy(self.parent[tListRow])
         if action == QtCore.Qt.CopyAction:
             if row == -1:
@@ -282,7 +282,7 @@ class ParamDialog(QtGui.QDialog):
 
     Parameters:
         plugin (TransformPlugin): The selected plugin whose parameters
-            you want to change. 
+            you want to change.
     """
     def __init__(self, plugin):
         super(ParamDialog, self).__init__()
@@ -296,7 +296,7 @@ class ParamDialog(QtGui.QDialog):
         """
         self.plugin.generateUi()
         self.setLayout(self.plugin.layout)
-        
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
@@ -315,12 +315,3 @@ if __name__ == '__main__':
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         if not __IPYTHON__:
             QtGui.QApplication.instance().exec_()
-    
-
-
-
-
-
-
-
-

@@ -7,7 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -58,4 +58,3 @@ class Ui_ShapeDrawer(object):
         self.drawGridButton.setText(_translate("ShapeDrawer", "Grid", None))
         self.drawCircleButton.setText(_translate("ShapeDrawer", "Circle", None))
         self.drawElipseButton.setText(_translate("ShapeDrawer", "Elipse", None))
-
