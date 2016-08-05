@@ -4,15 +4,27 @@ A class to draw shapes onto a QGraphicsView
 import os
 # SRC_PATH = os.path.dirname(os.path.abspath(__file__))
 # os.system("pyuic4 {0}/shapeDrawer.ui > {0}/shapeDrawer_ui.py".format(SRC_PATH))
-import shapeDrawer_ui
 
-from PyQt5 import QtCore, QtGui
-from pyqtgraph import RectROI, CircleROI, LineSegmentROI
-import shapeHolder
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except (ImportError, RuntimeError):
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
+
+PATH = os.path.dirname(os.path.abspath(__file__))
+Ui_ShapeDrawer= uic.loadUiType(os.path.join(PATH,"shapeDrawer.ui"))[0]
+
+from . import shapeHolder
+from .grid import Grid
+from .pyqtgraph import RectROI, CircleROI, LineSegmentROI
+# import shapeHolder
 import numpy
 import logging
 
-class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
+class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 
     """
     A Widget providing a list of shapes which can be drawn onto
@@ -46,7 +58,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.shapeList.delKeySig.connect(self.shapes.removeShape)
 
         # Button to plot selected RoI
-        self.plotRoiButton = QtGui.QPushButton('Plot RoI')
+        self.plotRoiButton = QtWidgets.QPushButton('Plot RoI')
         self.plotRoiButton.setEnabled(False)
         self.verticalLayout.addWidget(self.plotRoiButton)
 
@@ -91,7 +103,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
             self.dialog = GridDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyGridChanges)
             self.dialog.finished.connect(self.applyGridChanges)
-        elif type(shape)==QtGui.QGraphicsRectItem:
+        elif type(shape)==QtWidgets.QGraphicsRectItem:
             self.dialog = RectDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyRectChanges)
             self.dialog.finished.connect(self.applyRectChanges)
@@ -788,7 +800,7 @@ class ShapeDrawer(QtGui.QWidget, shapeDrawer_ui.Ui_ShapeDrawer):
         self.plotRoiButton.setEnabled(False)
         self.plotRoiButton.clicked.disconnect(self.plotROIHandler)
 
-class ShapeDialog(QtGui.QDialog):
+class ShapeDialog(QtWidgets.QDialog):
     """
     The base class of all shape dialogs.
     """
@@ -799,12 +811,12 @@ class ShapeDialog(QtGui.QDialog):
     def __init__(self, shape=None, parent=None, modal=False):
         super(ShapeDialog, self).__init__(parent)
 
-        self.layout = QtGui.QGridLayout(self)
+        self.layout = QtWidgets.QGridLayout(self)
         self.colorButton = QtGui.QPushButton("Color")
-        self.roiButton = QtGui.QCheckBox("Set RoI")
+        self.roiButton = QtWidgets.QCheckBox("Set RoI")
         self.roiButton.toggled.connect(self.parent().setROI)
-        self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
         self.buttons.addButton(self.roiButton, 3)
         self.buttons.accepted.connect(self.accept)
@@ -824,7 +836,7 @@ class ShapeDialog(QtGui.QDialog):
         self.move(shapeDrawerPosX, shapeDrawerPosY)
 
     def getColor(self):
-        newColor = QtGui.QColorDialog().getColor(initial=self.color)
+        newColor = QtWidgets.QColorDialog().getColor(initial=self.color)
         if newColor.isValid():
             self.color = newColor
         # apply colour to shape
@@ -867,12 +879,12 @@ class RectDialog(ShapeDialog):
         self.setWindowTitle("Draw Rectangle")
 
     def setupUi(self):
-        self.posLabel = QtGui.QLabel("Pos (x,y)")
-        self.xPosBox = QtGui.QDoubleSpinBox()
-        self.yPosBox = QtGui.QDoubleSpinBox()
-        self.sizeLabel = QtGui.QLabel("Size (width, height)")
-        self.xSizeBox = QtGui.QDoubleSpinBox()
-        self.ySizeBox = QtGui.QDoubleSpinBox()
+        self.posLabel = QtWidgets.QLabel("Pos (x,y)")
+        self.xPosBox = QtWidgets.QDoubleSpinBox()
+        self.yPosBox = QtWidgets.QDoubleSpinBox()
+        self.sizeLabel = QtWidgets.QLabel("Size (width, height)")
+        self.xSizeBox = QtWidgets.QDoubleSpinBox()
+        self.ySizeBox = QtWidgets.QDoubleSpinBox()
 
 
         self.layout.addWidget(self.posLabel)
@@ -928,12 +940,12 @@ class LineDialog(ShapeDialog):
         self.setWindowTitle("Draw Line")
 
     def setupUi(self):
-        self.startLabel = QtGui.QLabel("Start Point")
-        self.x1Box = QtGui.QDoubleSpinBox()
-        self.y1Box = QtGui.QDoubleSpinBox()
-        self.endLabel = QtGui.QLabel("End Point")
-        self.x2Box = QtGui.QDoubleSpinBox()
-        self.y2Box = QtGui.QDoubleSpinBox()
+        self.startLabel = QtWidgets.QLabel("Start Point")
+        self.x1Box = QtWidgets.QDoubleSpinBox()
+        self.y1Box = QtWidgets.QDoubleSpinBox()
+        self.endLabel = QtWidgets.QLabel("End Point")
+        self.x2Box = QtWidgets.QDoubleSpinBox()
+        self.y2Box = QtWidgets.QDoubleSpinBox()
         self.layout.addWidget(self.startLabel)
         self.layout.addWidget(self.x1Box)
         self.layout.addWidget(self.y1Box)
@@ -982,12 +994,12 @@ class GridDialog(ShapeDialog):
         self.setWindowTitle("Draw Grid")
 
     def setupUi(self):
-        self.posLabel = QtGui.QLabel("Pos (x,y)")
-        self.xPosBox = QtGui.QDoubleSpinBox()
-        self.yPosBox = QtGui.QDoubleSpinBox()
-        self.sizeLabel = QtGui.QLabel("Size (width, height)")
-        self.xSizeBox = QtGui.QDoubleSpinBox()
-        self.ySizeBox = QtGui.QDoubleSpinBox()
+        self.posLabel = QtWidgets.QLabel("Pos (x,y)")
+        self.xPosBox = QtWidgets.QDoubleSpinBox()
+        self.yPosBox = QtWidgets.QDoubleSpinBox()
+        self.sizeLabel = QtWidgets.QLabel("Size (width, height)")
+        self.xSizeBox = QtWidgets.QDoubleSpinBox()
+        self.ySizeBox = QtWidgets.QDoubleSpinBox()
         self.layout.addWidget(self.posLabel)
         self.layout.addWidget(self.xPosBox)
         self.layout.addWidget(self.yPosBox)
@@ -995,10 +1007,10 @@ class GridDialog(ShapeDialog):
         self.layout.addWidget(self.xSizeBox)
         self.layout.addWidget(self.ySizeBox)
 
-        self.rowsLabel = QtGui.QLabel("# Rows")
-        self.rowsBox = QtGui.QSpinBox()
-        self.columnsLabel = QtGui.QLabel("# Columns")
-        self.columnsBox = QtGui.QSpinBox()
+        self.rowsLabel = QtWidgets.QLabel("# Rows")
+        self.rowsBox = QtWidgets.QSpinBox()
+        self.columnsLabel = QtWidgets.QLabel("# Columns")
+        self.columnsBox = QtWidgets.QSpinBox()
         self.layout.addWidget(self.rowsLabel)
         self.layout.addWidget(self.rowsBox)
         self.layout.addWidget(self.columnsLabel)
@@ -1058,11 +1070,11 @@ class CircDialog(ShapeDialog):
         self.setWindowTitle("Draw Circle")
 
     def setupUi(self):
-        self.posLabel = QtGui.QLabel("Pos (x,y)")
-        self.xPosBox = QtGui.QDoubleSpinBox()
-        self.yPosBox = QtGui.QDoubleSpinBox()
-        self.radiusLabel = QtGui.QLabel("Radius")
-        self.radiusBox = QtGui.QDoubleSpinBox()
+        self.posLabel = QtWidgets.QLabel("Pos (x,y)")
+        self.xPosBox = QtWidgets.QDoubleSpinBox()
+        self.yPosBox = QtWidgets.QDoubleSpinBox()
+        self.radiusLabel = QtWidgets.QLabel("Radius")
+        self.radiusBox = QtWidgets.QDoubleSpinBox()
 
         self.layout.addWidget(self.posLabel)
         self.layout.addWidget(self.xPosBox)
@@ -1159,87 +1171,6 @@ class ElipseDialog(ShapeDialog):
             self.radiusYBox.valueChanged.connect(self.apply)
         else:
             logging.info("No shape!")
-
-
-class Grid(QtGui.QGraphicsRectItem):
-
-    def __init__(self, rect, nRows, nColumns):
-        super(Grid, self).__init__()
-        self.outRect = QtGui.QGraphicsRectItem(rect, self)
-        self.nRows = nRows
-        self.nColumns = nColumns
-        self.color = QtGui.QColor("red")
-        self.update()
-
-    def setRect(self, rect):
-        self.outRect.setRect(rect)
-        self.update()
-
-    def update(self):
-        self.vSpacing = self.outRect.rect().height() / self.nRows
-        self.hSpacing = self.outRect.rect().width() / self.nColumns
-        for i, line in enumerate(self.hLines):
-            x1 = self.outRect.rect().left()
-            y1 = self.outRect.rect().top() + (i+1)*self.vSpacing
-            x2 = self.outRect.rect().right()
-            y2 = y1
-            line.setLine(x1, y1, x2, y2)
-        for j, line in enumerate(self.vLines):
-            x1 = self.outRect.rect().left() + (j+1)*self.hSpacing
-            y1 = self.outRect.rect().top()
-            x2 = x1
-            y2 = self.outRect.rect().bottom()
-            line.setLine(x1, y1, x2, y2)
-        self.color = self._color
-
-    @property
-    def shapes(self):
-        return [self.outRect] + self.hLines + self.vLines
-
-    @property
-    def color(self):
-        return self._color
-
-    @color.setter
-    def color(self, color):
-        self._color = color
-        self._pen = QtGui.QPen(color)
-        self.outRect.setPen(self._pen)
-        for i in self.vLines + self.hLines:
-            i.setPen(QtGui.QPen(color))
-
-    def pen(self):
-        return self._pen
-
-    @property
-    def nRows(self):
-        return self._nRows
-
-    @nRows.setter
-    def nRows(self, nRows):
-        self._nRows = nRows
-        try:
-            for i in self.hLines:
-                i.setVisible(False)
-        except AttributeError:
-            pass
-        self.hLines = []
-        self.hLines = [QtGui.QGraphicsLineItem(self) for i in range(nRows-1)]
-
-    @property
-    def nColumns(self):
-        return self._nColumns
-
-    @nColumns.setter
-    def nColumns(self, nColumns):
-        self._nColumns = nColumns
-        try:
-            for i in self.vLines:
-                i.setVisible(False)
-        except AttributeError:
-            pass
-        self.vLines = []
-        self.vLines = [QtGui.QGraphicsLineItem(self) for i in range(nColumns-1)]
 
 class ShapeList(QtGui.QListView):
     """

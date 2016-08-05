@@ -1,7 +1,14 @@
 from __future__ import division
-
-from PyQt5 import QtCore, QtGui
-import transformPlugins
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except ImportError:
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
+# from PyQt4 import QtCore, QtGui
+from . import transformPlugins
 
 import copy
 

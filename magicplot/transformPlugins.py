@@ -37,7 +37,15 @@ See the example plugins in the transforms directory for more information.
 """
 
 import sys
-from PyQt5 import QtGui, QtCore
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except ImportError:
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
+# from PyQt4 import QtGui, QtCore
 import numpy
 import os
 import copy

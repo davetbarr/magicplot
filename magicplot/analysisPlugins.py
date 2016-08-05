@@ -35,10 +35,17 @@ will be autodetected by MagicPlot.
 
 See the example plugins in the analysis plugins directory for more information.
 """
-from PyQt5 import QtGui, QtCore
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except ImportError:
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
 import numpy
 
-class AnalysisPlugin(QtGui.QWidget):
+class AnalysisPlugin(QtWidgets.QWidget):
     """
     Base class for analysis plugins for MagicPlot.
     """
@@ -65,16 +72,16 @@ class AnalysisPlugin(QtGui.QWidget):
         pass
 
     def generateUi(self):
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
         self.paramBoxList = {}
         for i in self.params.keys():
-            label = QtGui.QLabel(i)
-            box = QtGui.QDoubleSpinBox()
+            label = QtWidgets.QLabel(i)
+            box = QtWidgets.QDoubleSpinBox()
             box.setValue(self.params[i])
             box.valueChanged.connect(self.setParams)
             self.paramBoxList[i] = box
             self.layout.addWidget(label)
             self.layout.addWidget(box)
-        self.outputBox = QtGui.QTextEdit()
+        self.outputBox = QtWidgets.QTextEdit()
         self.layout.addWidget(self.outputBox, 0, 1, 2*len(self.params), 1)
         self.setLayout(self.layout)

@@ -1,6 +1,18 @@
-from PyQt5 import QtCore, QtGui
-from shapeDrawer import Grid
 
+print("IMPORT SHAPEHOLDER")
+import os
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except (ImportError, RuntimeError):
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
+print("IMPORTEDSHAPEHOLDER")
+
+# from . import shapeDrawer
+from .grid import Grid
 
 class ShapeContainer(QtCore.QAbstractListModel):
 

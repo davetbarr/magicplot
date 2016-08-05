@@ -1,4 +1,4 @@
-from magicplot import *
+from .magicplot import *
 
 
 from ._version import get_versions

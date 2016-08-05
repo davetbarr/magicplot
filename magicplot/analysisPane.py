@@ -4,11 +4,18 @@ import os
 import importlib
 # SRC_PATH = os.path.dirname(os.path.abspath(__file__))
 # os.system("pyuic4 {0}/analysisPane.ui > {0}/analysisPane_ui.py".format(SRC_PATH))
+# Try importing PyQt5, if not fall back to PyQt4
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    PYQTv = 5
+except ImportError:
+    from PyQt4 import QtCore, QtGui, uic
+    QtWidgets = QtGui
+    PyQTv = 4
 
-from analysisPlugins import AnalysisPlugin
+from .analysisPlugins import AnalysisPlugin
+from . import pyqtgraph
 
-from PyQt5 import QtCore, QtGui
-import pyqtgraph
 import numpy
 import magicplot
 import logging
@@ -17,7 +24,7 @@ import logging
 import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 
-class AnalysisPane(QtGui.QWidget):
+class AnalysisPane(QtWidgets.QWidget):
 
     def __init__(self, parent=None, view=None, item=None):
         super(AnalysisPane, self).__init__(parent)
@@ -26,10 +33,10 @@ class AnalysisPane(QtGui.QWidget):
         self.data = None
 
     def setupUi(self):
-        self.layout = QtGui.QVBoxLayout()
-        self.regionCheckbox = QtGui.QCheckBox('Region of Interest')
+        self.layout = QtWidgets.QVBoxLayout()
+        self.regionCheckbox = QtWidgets.QCheckBox('Region of Interest')
         self.regionCheckbox.toggled.connect(self.toggleRegion)
-        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget = QtWidgets.QTabWidget()
         for i in self.pluginList:
             i.generateUi()
             self.tabWidget.addTab(i, i.name)
