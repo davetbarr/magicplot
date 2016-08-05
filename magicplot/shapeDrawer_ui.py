@@ -2,49 +2,34 @@
 
 # Form implementation generated from reading ui file 'shapeDrawer.ui'
 #
-# Created: Wed Oct  7 10:25:53 2015
-#      by: PyQt4 UI code generator 4.11.3
+# Created by: PyQt5 UI code generator 5.7
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui
-
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_ShapeDrawer(object):
     def setupUi(self, ShapeDrawer):
-        ShapeDrawer.setObjectName(_fromUtf8("ShapeDrawer"))
+        ShapeDrawer.setObjectName("ShapeDrawer")
         ShapeDrawer.resize(137, 317)
-        self.gridLayout = QtGui.QGridLayout(ShapeDrawer)
-        self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
-        self.verticalLayout = QtGui.QVBoxLayout()
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.drawRectButton = QtGui.QPushButton(ShapeDrawer)
-        self.drawRectButton.setObjectName(_fromUtf8("drawRectButton"))
+        self.gridLayout = QtWidgets.QGridLayout(ShapeDrawer)
+        self.gridLayout.setObjectName("gridLayout")
+        self.verticalLayout = QtWidgets.QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.drawRectButton = QtWidgets.QPushButton(ShapeDrawer)
+        self.drawRectButton.setObjectName("drawRectButton")
         self.verticalLayout.addWidget(self.drawRectButton)
-        self.drawLineButton = QtGui.QPushButton(ShapeDrawer)
-        self.drawLineButton.setObjectName(_fromUtf8("drawLineButton"))
+        self.drawLineButton = QtWidgets.QPushButton(ShapeDrawer)
+        self.drawLineButton.setObjectName("drawLineButton")
         self.verticalLayout.addWidget(self.drawLineButton)
-        self.drawGridButton = QtGui.QPushButton(ShapeDrawer)
-        self.drawGridButton.setObjectName(_fromUtf8("drawGridButton"))
+        self.drawGridButton = QtWidgets.QPushButton(ShapeDrawer)
+        self.drawGridButton.setObjectName("drawGridButton")
         self.verticalLayout.addWidget(self.drawGridButton)
-        self.drawCircleButton = QtGui.QPushButton(ShapeDrawer)
-        self.drawCircleButton.setObjectName(_fromUtf8("drawCircleButton"))
+        self.drawCircleButton = QtWidgets.QPushButton(ShapeDrawer)
+        self.drawCircleButton.setObjectName("drawCircleButton")
         self.verticalLayout.addWidget(self.drawCircleButton)
-        self.drawElipseButton = QtGui.QPushButton(ShapeDrawer)
-        self.drawElipseButton.setObjectName(_fromUtf8("drawElipseButton"))
+        self.drawElipseButton = QtWidgets.QPushButton(ShapeDrawer)
+        self.drawElipseButton.setObjectName("drawElipseButton")
         self.verticalLayout.addWidget(self.drawElipseButton)
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
@@ -52,9 +37,11 @@ class Ui_ShapeDrawer(object):
         QtCore.QMetaObject.connectSlotsByName(ShapeDrawer)
 
     def retranslateUi(self, ShapeDrawer):
-        ShapeDrawer.setWindowTitle(_translate("ShapeDrawer", "Form", None))
-        self.drawRectButton.setText(_translate("ShapeDrawer", "Rectangle", None))
-        self.drawLineButton.setText(_translate("ShapeDrawer", "Line", None))
-        self.drawGridButton.setText(_translate("ShapeDrawer", "Grid", None))
-        self.drawCircleButton.setText(_translate("ShapeDrawer", "Circle", None))
-        self.drawElipseButton.setText(_translate("ShapeDrawer", "Elipse", None))
+        _translate = QtCore.QCoreApplication.translate
+        ShapeDrawer.setWindowTitle(_translate("ShapeDrawer", "Form"))
+        self.drawRectButton.setText(_translate("ShapeDrawer", "Rectangle"))
+        self.drawLineButton.setText(_translate("ShapeDrawer", "Line"))
+        self.drawGridButton.setText(_translate("ShapeDrawer", "Grid"))
+        self.drawCircleButton.setText(_translate("ShapeDrawer", "Circle"))
+        self.drawElipseButton.setText(_translate("ShapeDrawer", "Ellipse"))
+

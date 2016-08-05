@@ -49,6 +49,9 @@ def plot(*args, **kwargs):
     Parameters:
         args
         kwargs
+
+    Returns:
+        MagicPlot window object
     """
 
     pyqtgraph.mkQApp()
@@ -58,7 +61,7 @@ def plot(*args, **kwargs):
     plots.append(mplot)
     # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
     #     QtGui.QApplication.instance().exec_()
-    return item
+    return mplot
 
 class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
     """
@@ -200,6 +203,10 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         # self.hist.setImageItem(self.plotItem)
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
+
+        # lock aspect ratio to 1:1? Is there any reason not to?
+        self.viewBox.setAspectLocked()
+
         self.plotItems = []
 
     @property
@@ -270,22 +277,26 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         self.mousePos = self.viewBox.mapSceneToView(imgPos)
         value = None
 
+        # These need to be integers otherwise pyqtgraph throws a warning
+        mousePos_x = int(self.mousePos.x())
+        mousePos_y = int(self.mousePos.y())
+
         # Try to index, if not then out of bounds. Don't worry about that.
         # Also ignore if no data plotted
         try:
             if self.plotMode == 1:
-                value = self.data[1][self.mousePos.x()]
+                value = self.data[1][mousePos_x]
             if self.plotMode == 2:
                 # Only do stuff if position above 0.
-                if min(self.mousePos.x(), self.mousePos.y())>0:
-                    value = self.data[self.mousePos.x(),self.mousePos.y()]
+                if min(mousePos_x, mousePos_y)>0:
+                    value = self.data[mousePos_x,mousePos_y]
 
         except (IndexError, AttributeError):
             pass
 
         if value!=None:
-            self.mousePosLabel.setText ("(%.1f,%.1f) : %.2f"%
-                        (self.mousePos.x(), self.mousePos.y(), value) )
+            self.mousePosLabel.setText ("(%d,%d) : %.2f"%
+                        (mousePos_x, mousePos_y, value) )
 
 
     # Plotting methods
@@ -338,8 +349,13 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         try:
             # Try to plot 1d
             dataItem = MagicPlotDataItem(self, *args, **kwargs)
+
             if self.plotMode != 1:
                 self.plotMode = 1
+
+            # Add the dataItem to the list of plotItems
+            self.plotItems.append(dataItem)
+
             self.plot1d(dataItem)
             self.data = dataItem.getData()
             self.dataUpdateSignal1d.emit(self.data)
@@ -349,8 +365,18 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
             # This is rubbish, needs getting rid of
             if e.args[0].find('array shape must be') == 0:
                 dataItem = MagicPlotImageItem(self, *args, **kwargs)
+
+                # make sure we don't have more than a single 2d plotitem in the list
+                try:
+                    self.plotItems[0] = dataItem
+                except IndexError:
+                    self.plotItems.append(dataItem)
+
                 if self.plotMode != 2:
                     self.plotMode = 2
+
+                # clear the view then add new dataItem
+                self.plotView.clear()
                 self.plot2d(dataItem)
                 self.data = dataItem.image
                 self.dataUpdateSignal2d.emit(self.data)
@@ -364,8 +390,6 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
         if self.panBounds:
             self.updatePanBounds()
 
-        # add the plotItem to the list
-        self.plotItems.append(dataItem)
         self.transformer.sigActiveToggle.connect(
                 dataItem.transformToggle)
         return dataItem
@@ -571,7 +595,10 @@ class MagicPlot(QtGui.QWidget, magicPlot_ui.Ui_MagicPlot):
                 self.plotItem.setOpts(autoLevels=True)
                 im = self.plotItem.image
                 self.plotItem.setLevels((im.min(), im.max()))
-                self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+                try:
+                    self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+                except TypeError:
+                    logging.debug('Histogram not connected so cannot disconnect')
                 self.hist.setLevels(im.min(), im.max())
                 self.hist.sigLevelsChanged.connect(
                     self.histWidget.histToggle.click)

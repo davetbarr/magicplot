@@ -845,7 +845,7 @@ class ShapeDialog(QtGui.QDialog):
             logging.info('No shape')
 
     def setDefaultRange(self, spinboxes):
-        doubleSpinBoxMin = -100000.0
+        doubleSpinBoxMin = -100000.0 # don't like setting spinbox limits like this
         doubleSpinBoxMax = 100000.0
         for i in spinboxes:
             i.setRange(doubleSpinBoxMin, doubleSpinBoxMax)

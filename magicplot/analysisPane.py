@@ -59,6 +59,10 @@ class AnalysisPane(QtGui.QWidget):
         except AttributeError:
             pluginData = self.data
             logging.info('No 1D region - probably a 2d Plot')
+        except RuntimeError as e:
+            pluginData = self.data
+            logging.info(e)
+
         for i in self.pluginList:
             i.setData(pluginData)
         self.runPlugins()

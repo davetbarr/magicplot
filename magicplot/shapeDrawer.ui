@@ -47,7 +47,7 @@
      <item>
       <widget class="QPushButton" name="drawElipseButton">
        <property name="text">
-        <string>Elipse</string>
+        <string>Ellipse</string>
        </property>
       </widget>
      </item>
