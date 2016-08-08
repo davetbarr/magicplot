@@ -353,24 +353,10 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
             MagicPlotImageItem: If 2D plot
         """
 
+        # try 2d first
         try:
-            # Try to plot 1d
-            dataItem = MagicPlotDataItem(self, *args, **kwargs)
+            if args[0].ndim == 2 and len(args) == 1 and args[0].shape[1] != 2:
 
-            if self.plotMode != 1:
-                self.plotMode = 1
-
-            # Add the dataItem to the list of plotItems
-            self.plotItems.append(dataItem)
-
-            self.plot1d(dataItem)
-            self.data = dataItem.getData()
-            self.dataUpdateSignal1d.emit(self.data)
-
-        except Exception as e:
-            # Try to plot 2d
-            # This is rubbish, needs getting rid of
-            if e.args[0].find('array shape must be') == 0:
                 dataItem = MagicPlotImageItem(self, *args, **kwargs)
 
                 # make sure we don't have more than a single 2d plotitem in the list
@@ -387,7 +373,30 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                 self.plot2d(dataItem)
                 self.data = dataItem.image
                 self.dataUpdateSignal2d.emit(self.data)
+
             else:
+                # data doesn't match 2D data spec
+                raise IndexError
+
+        except (IndexError, AttributeError):
+            # this usually means the data is 1D so try to plot 1D
+            try:
+                # Try to plot 1d
+                dataItem = MagicPlotDataItem(self, *args, **kwargs)
+
+                if self.plotMode != 1:
+                    self.plotMode = 1
+
+                # Add the dataItem to the list of plotItems
+                self.plotItems.append(dataItem)
+
+                self.plot1d(dataItem)
+                self.data = dataItem.getData()
+                self.dataUpdateSignal1d.emit(self.data)
+
+            except Exception as e:
+                # This means the data is unplottable by pyqtgraph
+                logging.error('Unable to plot 1D or 2D, check data')
                 raise
 
         # lock panning to plot area

@@ -132,12 +132,12 @@ class TransformListView(QtGui.QListView):
             return
 
         mimeData = QtCore.QMimeData()
-        mimeData.setData("text/plain", str(index.row()))
+        mimeData.setText(str(index.row()))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
 
-        result = drag.start(QtCore.Qt.MoveAction)
+        result = drag.exec_(QtCore.Qt.MoveAction)
 
     def mouseMoveEvent(self, event):
         self.startDrag(event)
