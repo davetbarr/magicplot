@@ -21,7 +21,6 @@ class Grid(QtWidgets.QGraphicsRectItem):
         self.outRect = QtWidgets.QGraphicsRectItem(rect, self)
         self.nRows = nRows
         self.nColumns = nColumns
-        self.color = QtGui.QColor("red")
         self.update()
 
     def setRect(self, rect):
@@ -37,32 +36,37 @@ class Grid(QtWidgets.QGraphicsRectItem):
             x2 = self.outRect.rect().right()
             y2 = y1
             line.setLine(x1, y1, x2, y2)
+            # line.setPen(self.outRect.pen())
         for j, line in enumerate(self.vLines):
             x1 = self.outRect.rect().left() + (j+1)*self.hSpacing
             y1 = self.outRect.rect().top()
             x2 = x1
             y2 = self.outRect.rect().bottom()
             line.setLine(x1, y1, x2, y2)
-        self.color = self._color
+            # line.setPen(self.outRect.pen())
+
 
     @property
     def shapes(self):
         return [self.outRect] + self.hLines + self.vLines
 
-    @property
-    def color(self):
-        return self._color
+    # @property
+    # def color(self):
+    #     return self._color
 
-    @color.setter
-    def color(self, color):
-        self._color = color
-        self._pen = QtGui.QPen(color)
-        self.outRect.setPen(self._pen)
+    # @color.setter
+    # def color(self, color):
+    #     self._color = color
+    #     self._pen = QtGui.QPen(color)
+    #     self.outRect.setPen(self._pen)
+    #     for i in self.vLines + self.hLines:
+    #         i.setPen(QtGui.QPen(color))
+
+    def setPen(self, pen):
+        self.outRect.setPen(pen)
         for i in self.vLines + self.hLines:
-            i.setPen(QtGui.QPen(color))
-
-    def pen(self):
-        return self._pen
+            i.setPen(pen)
+        super(Grid, self).setPen(pen)
 
     @property
     def nRows(self):
