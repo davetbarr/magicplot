@@ -46,7 +46,7 @@ class AnalysisPane(QtWidgets.QWidget):
 
     def getPluginList(self):
         self.pluginList = []
-        path = os.path.abspath(os.path.join(PATH, '../plugins/analysis'))
+        path = os.path.abspath(os.path.join(PATH, './plugins/analysis'))
         for i in os.listdir(path):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:

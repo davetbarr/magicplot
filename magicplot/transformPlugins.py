@@ -264,7 +264,7 @@ class TransformList(QtCore.QAbstractListModel):
         Search the directory '../plugins/transforms' for plugins and add them
         to the list
         """
-        path = os.path.abspath(os.path.join(PATH, '../plugins/transforms'))
+        path = os.path.abspath(os.path.join(PATH, './plugins/transforms'))
         for i in os.listdir(path):
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:

@@ -15,13 +15,11 @@ except (ImportError, RuntimeError):
 PATH = os.path.dirname(os.path.abspath(__file__))
 Ui_MagicPlot= uic.loadUiType(os.path.join(PATH,"magicPlot.ui"))[0]
 # import magicPlot_ui
-from . import shapeHolder, shapeDrawer, analysisPane, transforms
+from . import shapeHolder, shapeDrawer, analysisPane, transforms, plugins
 
 from . import pyqtgraph
 import numpy
 import logging
-
-
 
 # set default colourmaps available
 pyqtgraph.graphicsItems.GradientEditorItem.Gradients = pyqtgraph.pgcollections.OrderedDict([
@@ -43,8 +41,6 @@ pyqtgraph.graphicsItems.GradientEditorItem.Gradients = pyqtgraph.pgcollections.O
 
 ############API STUFF##########
 
-plots = []
-
 def plot(*args, **kwargs):
     """
     Helper function to produce a MagicPlot figure.
@@ -65,7 +61,7 @@ def plot(*args, **kwargs):
     mplot = MagicPlot()
     item = mplot.plot(*args, **kwargs)
     mplot.show()
-    plots.append(mplot)
+    # plots.append(mplot)
     # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
     #     QtGui.QApplication.instance().exec_()
     return mplot
@@ -122,7 +118,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.dataUpdateSignal1d.connect(self.dataUpdateHandler)
         self.dataUpdateSignal2d.connect(self.dataUpdateHandler)
 
-        self.setWindowTitle("Magic Plot")
+        self.setWindowTitle("MagicPlot")
 
         # Initialise HistogramLUTWidget
         self.histWidget = QtWidgets.QWidget()
@@ -170,6 +166,13 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         showAnalysis.setCheckable(True)
         showAnalysis.toggled.connect(self.analysisPane.setVisible)
         self.showMenu.addAction(showAnalysis)
+
+        # Context menu for viewing source plugin streams
+        self.DDS_Dialog = plugins.sources.DDS.make_interface_dialog(self)
+        showDDS = QtWidgets.QAction('DDS streams', self)
+        showDDS.triggered.connect(self.DDS_Dialog.show)
+        self.showMenu.addAction(showDDS)
+
 
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
@@ -298,7 +301,9 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                 if min(mousePos_x, mousePos_y)>0:
                     value = self.data[mousePos_x,mousePos_y]
 
-        except (IndexError, AttributeError):
+        except (IndexError, AttributeError, TypeError):
+            # These all imply there is nothing plotted
+            # TODO Handle this better
             pass
 
         if value!=None:
@@ -376,7 +381,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
             else:
                 # data doesn't match 2D data spec
-                raise IndexError
+                raise IndexError('Given data does not fit 2D plot specification')
 
         except (IndexError, AttributeError):
             # this usually means the data is 1D so try to plot 1D
@@ -684,6 +689,11 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
     def __init__(self, parent,  *args, **kwargs):
         self.parent = parent
+        if 'item_name' in kwargs.keys():
+            self.item_name = kwargs['item_name']
+            del kwargs['item_name'] # pyqtgraph won't like it
+        else:
+            self.item_name = '2DPlotItem'
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
@@ -798,6 +808,11 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     def __init__(self, parent, *args, **kargs):
         # setData with pyqtgraph.PlotDataItem.setData()
         self.parent = parent
+        if 'item_name' in kargs.keys():
+            self.item_name = kargs['item_name']
+            # del kargs['item_name'] # pyqtgraph won't like it
+        else:
+            self.item_name = '1DPlotItem'
         super(MagicPlotDataItem, self).__init__(*args, **kargs)
 
     def informViewBoundsChanged(self):
