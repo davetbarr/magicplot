@@ -167,13 +167,6 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         showAnalysis.toggled.connect(self.analysisPane.setVisible)
         self.showMenu.addAction(showAnalysis)
 
-        # Context menu for viewing source plugin streams
-        self.DDS_Dialog = plugins.sources.DDS.make_interface_dialog(self)
-        showDDS = QtWidgets.QAction('DDS streams', self)
-        showDDS.triggered.connect(self.DDS_Dialog.show)
-        self.showMenu.addAction(showDDS)
-
-
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
         # to layout
