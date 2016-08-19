@@ -22,8 +22,7 @@ QPEN_WIDTH = 0
 from . import shapeHolder
 from .grid import Grid
 from .pyqtgraph import RectROI, CircleROI, LineSegmentROI
-from . import magicplot
-# import shapeHolder
+from .magicplot import *
 import numpy
 import logging
 
