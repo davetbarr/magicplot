@@ -44,6 +44,32 @@ except ImportError:
     QtWidgets = QtGui
     PyQTv = 4
 import numpy
+import logging
+
+class Analyser(QtCore.QThread):
+    
+    sigAnalysisFinished = QtCore.pyqtSignal(object)
+    def __init__(self, parent):
+        super(Analyser, self).__init__()
+        self.data = None
+
+    def setData(self, data):
+        self.data = data
+
+    def run(self):
+        outputDict = self.runPlugins()
+        self.sigAnalysisFinished.emit(outputDict)
+
+    def runPlugins(self):
+        outputDict = []
+        for i in self.pluginList:
+            i.setParams()
+            try:
+                output = i.run()
+                outputDict.append(output)
+            except Exception as e:
+                outputDict.append(e.args[0])
+        return outputDict
 
 class AnalysisPlugin(QtWidgets.QWidget):
     """
@@ -69,7 +95,7 @@ class AnalysisPlugin(QtWidgets.QWidget):
 
         Whatever is returned is displayed in the output QTextBox
         """
-        pass
+        return
 
     def generateUi(self):
         self.layout = QtWidgets.QGridLayout()
@@ -85,3 +111,6 @@ class AnalysisPlugin(QtWidgets.QWidget):
         self.outputBox = QtWidgets.QTextEdit()
         self.layout.addWidget(self.outputBox, 0, 1, 2*len(self.params), 1)
         self.setLayout(self.layout)
+
+    def setOutput(self, output):
+        self.outputBox.setText(str(output))

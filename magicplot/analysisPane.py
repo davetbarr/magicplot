@@ -13,7 +13,7 @@ except ImportError:
     QtWidgets = QtGui
     PyQTv = 4
 
-from .analysisPlugins import AnalysisPlugin
+from .analysisPlugins import AnalysisPlugin, Analyser
 from . import pyqtgraph
 
 import numpy
@@ -25,11 +25,18 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 class AnalysisPane(QtWidgets.QWidget):
+    
+    runPluginSignal = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None, view=None, item=None):
         super(AnalysisPane, self).__init__(parent)
         self.getPluginList()
         self.setupUi()
+        self.analyser = Analyser(self)
+        self.analyser.pluginList = self.pluginList
+        self.analyser.sigAnalysisFinished.connect(self.updateOutput)
+        self.runPluginSignal.connect(self.updateData)
+        self.analyser.start()
         self.data = None
 
     def setupUi(self):
@@ -43,16 +50,6 @@ class AnalysisPane(QtWidgets.QWidget):
         self.layout.addWidget(self.regionCheckbox)
         self.layout.addWidget(self.tabWidget)
         self.setLayout(self.layout)
-
-    def getPluginList(self):
-        self.pluginList = []
-        path = os.path.abspath(os.path.join(PATH, './plugins/analysis'))
-        for i in os.listdir(path):
-            fname = os.path.join(path, i)
-            with open(fname, 'r') as f:
-                exec(f.read(), globals())
-                self.pluginList.append(Plugin())
-
 
     def updateData(self, data):
         if data is not None:
@@ -75,13 +72,21 @@ class AnalysisPane(QtWidgets.QWidget):
         self.runPlugins()
 
     def runPlugins(self):
-        for i in self.pluginList:
-            i.setParams()
-            try:
-                output = i.run()
-                i.outputBox.setText(str(output))
-            except Exception as e:
-                i.outputBox.setText(e.args[0])
+        self.analyser.data = self.data
+        self.analyser.start()
+
+    def updateOutput(self, outputDict):
+        for i,j in zip(outputDict, self.pluginList):
+            j.setOutput(i)
+
+    def getPluginList(self):
+        self.pluginList = []
+        path = os.path.abspath(os.path.join(PATH, './plugins/analysis'))
+        for i in os.listdir(path):
+            fname = os.path.join(path, i)
+            with open(fname, 'r') as f:
+                exec(f.read(), globals())
+                self.pluginList.append(Plugin())
 
     def toggleRegion(self, checked):
         # make sure we're in 1D plotMode!

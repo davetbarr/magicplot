@@ -30,6 +30,7 @@ class Transformer(QtCore.QObject):
         self.tList.getTransforms()
         self.aList = transformPlugins.TransformList(self.tList)
         self.active = False
+        self.worker = Transformer_Worker()
         self.initContextMenu()
 
     def initContextMenu(self):
@@ -70,25 +71,13 @@ class Transformer(QtCore.QObject):
         activeCheck.setChecked(True)
 
     def transform(self, data):
-        """
-        Transform data by applying the transforms in the applied
-        transforms list in order.
-
-        Parameters:
-            data (numpy.ndarray, tuple[numpy.ndarray]): the data to be
-                transformed.
-
-        Returns:
-            numpy.ndarray: the transformed data
-        """
         if self.active:
-            for i in self.aList:
-                i.setData(data)
-                data = i.run()
-            return data
+            self.worker.data = data
+            self.worker.aList = self.aList
+            self.worker.start()
         else:
-            return data
-
+            pass
+        
     def openDialog(self):
         """
         Open the transforms dialog
@@ -103,3 +92,32 @@ class Transformer(QtCore.QObject):
         """
         self.active = checked
         self.sigActiveToggle.emit(checked)
+        
+class Transformer_Worker(QtCore.QThread):
+    sigTransformsCompleted = QtCore.pyqtSignal(object)
+
+    def __init__(self, *args, **kwargs):
+        super(Transformer_Worker, self).__init__(*args, **kwargs)
+        self.data = None
+        self.aList = None
+
+    def run(self):
+        transformed_data = self.transform(self.data)
+        self.sigTransformsCompleted.emit(transformed_data)
+
+    def transform(self, data):
+        """
+        Transform data by applying the transforms in the applied
+        transforms list in order.
+
+        Parameters:
+            data (numpy.ndarray, tuple[numpy.ndarray]): the data to be
+                transformed.
+
+        Returns:
+            numpy.ndarray: the transformed data
+        """
+        for i in self.aList:
+            i.setData(data)
+            data = i.transform()
+        return data

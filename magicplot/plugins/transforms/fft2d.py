@@ -4,7 +4,7 @@ class Plugin(TransformPlugin):
         TransformPlugin.__init__(self, params={},
                 name='2d Fourier Transform')
 
-    def run(self):
+    def transform(self):
         if len(self.data) == 2:
             raise('Only works with 2D plts')
         else:

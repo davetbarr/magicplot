@@ -1,11 +1,11 @@
 class Plugin(TransformPlugin):
 
     def __init__(self):
-        TransformPlugin.__init__(self, params={'base':10},
+        TransformPlugin.__init__(self, params={'base (not currently implemented)':10},
                 name='Log')
 
-    def run(self):
+    def transform(self):
         if len(self.data) == 2:
-            return numpy.log(self.data[1])
+            return (self.data[0],numpy.log10(self.data[1]))
         else:
             return numpy.log(self.data)

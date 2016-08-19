@@ -175,7 +175,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotMode = 2
 
         # defualt setting for locking viewBox to data
-        self.panBounds = True
+        self.panBounds = False
 
         # default setting for autoLevels of 2d plots
         self.autoLevels = True
@@ -315,6 +315,10 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
             MagicPlotImageItem: an empty MagicPlotImageItem
         """
         imageItem = MagicPlotImageItem(self)
+        try:
+            self.plotItems[0] = imageItem
+        except IndexError:
+            self.plotItems.append(imageItem)
         if self.plotMode != 2:
             self.plotMode = 2
         self.plot2d(imageItem)
@@ -330,6 +334,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         dataItem = MagicPlotDataItem(self)
         if self.plotMode != 1:
             self.plotMode = 1
+        self.plotItems.append(dataItem)
         self.plot1d(dataItem)
         return dataItem
 
@@ -458,7 +463,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         Connected to the dataUpdate1d and dataUpdate2d signals, handles
         updating data in the plot.
         """
-        self.analysisPane.updateData(data)
+        self.analysisPane.runPluginSignal.emit(data)
         if self.plotMode == 2 and self.autoLevels:
             self.setHistFromData(data)
 
@@ -682,15 +687,16 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
     def __init__(self, parent,  *args, **kwargs):
         self.parent = parent
+        self.item_name = None
         if 'item_name' in kwargs.keys():
-            self.item_name = kwargs['item_name']
+            self.setName(kwargs['item_name'])
             del kwargs['item_name'] # pyqtgraph won't like it
         else:
-            self.item_name = '2DPlotItem'
+            self.setName('2DPlotItem')
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
-        self.originalData = None
+        self.parent.transformer.worker.sigTransformsCompleted.connect(super(MagicPlotImageItem, self).setImage)
 
     def setData(self, data, **kwargs):
         """
@@ -699,17 +705,18 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         """
         self.setImage(image=data, **kwargs)
 
-    def setImage(self, image=None, **kargs):
+    def setImage(self, image=None, **kwargs):
         """
         Extension of pyqtgraph.ImageItem.setImage() to allow transforms to be
         applied to the data before it is plotted.
         """
         # transform if transformer is active
         if self.parent.transformer.active and image is not None:
-            image = self.parent.transformer.transform(image)
+            self.parent.transformer.transform(image)
+            return
 
         # call the pyqtgraph.ImageItem.setImage() function
-        super(MagicPlotImageItem, self).setImage(image, **kargs)
+        super(MagicPlotImageItem, self).setImage(image, **kwargs)
 
     def informViewBoundsChanged(self):
         super(MagicPlotImageItem, self).informViewBoundsChanged()
@@ -771,6 +778,10 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         """
         QtGui.QApplication.instance().processEvents()
 
+    def setName(self, name):
+        self.item_name = name
+        self.parent.setWindowTitle(self.item_name)
+
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
@@ -795,18 +806,22 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         # transform if transformer is active
         if self.parent.transformer.active and data is not None:
             data = self.parent.transformer.transform(data)
-            super(MagicPlotDataItem, self).setData(data, **kargs)
+            super(MagicPlotDataItem, self).setData(data, **kwargs)
             return
     """
-    def __init__(self, parent, *args, **kargs):
+    def __init__(self, parent, *args, **kwargs):
         # setData with pyqtgraph.PlotDataItem.setData()
         self.parent = parent
-        if 'item_name' in kargs.keys():
-            self.item_name = kargs['item_name']
-            # del kargs['item_name'] # pyqtgraph won't like it
+        self.item_name = None
+        if 'item_name' in kwargs.keys():
+            self.setName(kwargs['item_name'])
+            # del kwargs['item_name'] # pyqtgraph won't like it
         else:
-            self.item_name = '1DPlotItem'
-        super(MagicPlotDataItem, self).__init__(*args, **kargs)
+            self.setName('1DPlotItem')
+        super(MagicPlotDataItem, self).__init__(*args, **kwargs)
+        self.originalData = self.getData()
+        self.parent.transformer.worker.sigTransformsCompleted.connect(super(MagicPlotDataItem, self).setData)
+
 
     def informViewBoundsChanged(self):
         super(MagicPlotDataItem, self).informViewBoundsChanged()
@@ -840,6 +855,14 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.setColor('w')
             self.setSymbol(None)
 
+    def setData(self, *args, **kwargs):
+        super(MagicPlotDataItem, self).setData(*args, **kwargs)
+        # transform if transformer is active
+        if self.parent.transformer.active and self.getData()[0] is not None:
+            self.parent.transformer.transform(self.getData())
+
+
+
     def transformToggle(self, checked):
         """
         Handles clicks on the 'Activate Transforms' menu option when this
@@ -851,9 +874,9 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         """
         if checked:
             self.originalData = self.getData()
-            self.setData(self.getData())
+            self.setData(self.getData()[0], self.getData()[1])
         else:
-            self.setData(self.originalData)
+            self.setData(self.originalData[0], self.originalData[1])
             self.originalData = None
 
     def updatePlot(self):
@@ -861,6 +884,10 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         Wrapper around QApplication.processEvents() so that live plotting works
         """
         QtGui.QApplication.instance().processEvents()
+
+    def setName(self, name):
+        self.item_name = name
+        self.parent.setWindowTitle(self.item_name)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

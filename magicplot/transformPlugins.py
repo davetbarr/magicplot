@@ -51,11 +51,12 @@ import os
 import copy
 PATH = os.path.dirname(os.path.abspath(__file__))
 
-class TransformPlugin(object):
+class TransformPlugin(QtCore.QObject):
     """
     Base class for transform plugins for MagicPlot
     """
     def __init__(self, params={}, name='Plugin'):
+        super(TransformPlugin, self).__init__()
         self.params = params
         self.name = name
 
@@ -66,8 +67,8 @@ class TransformPlugin(object):
         for i in self.paramBoxList.keys():
             self.params[i] = self.paramBoxList[i].value()
 
-    def run(self):
-        return self.data
+    def transform(self):
+        pass
 
     def generateUi(self):
         self.layout = QtGui.QGridLayout()
