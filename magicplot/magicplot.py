@@ -166,6 +166,8 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         showAnalysis.toggled.connect(self.analysisPane.setVisible)
         self.showMenu.addAction(showAnalysis)
 
+        self.plotItems = []
+
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
         # to layout
@@ -181,11 +183,12 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
 
 
+
  # Methods to setup plot areaD
  ##################################
     def set1dPlot(self):
         logging.debug("Set 1d Plot")
-        self.deletePlotItem()
+        self.deletePlotItems()
         self.plotView = pyqtgraph.PlotWidget()
         # self.plotObj = self.plotView.plotItem.plot()
         # self.plotItem = self.plotView.plotItem
@@ -197,7 +200,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
     def set2dPlot(self):
         logging.debug("Set 2d Plot")
-        self.deletePlotItem()
+        self.deletePlotItems()
         self.plotView = pyqtgraph.PlotWidget()
         # self.plotItem = pyqtgraph.ImageItem()
         # self.plotView.addItem(self.plotItem)
@@ -230,9 +233,15 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
         self.shapeDrawer.clearShapes()
 
-    def deletePlotItem(self):
+    def deletePlotItems(self):
+        for i in self.plotItems:
+            self.deletePlotItem(i)
         for i in reversed(range(self.plotLayout.count())):
             self.plotLayout.itemAt(i).widget().setParent(None)
+
+    def deletePlotItem(self, item):
+        self.plotItems.remove(item)
+        self.plotView.removeItem(item)
 
     @property
     def panBounds(self):
@@ -386,11 +395,8 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                 # Try to plot 1d
                 dataItem = MagicPlotDataItem(self, *args, **kwargs)
 
-                if self.plotMode != 1:
+                if self.plotMode != 1 and not dataItem.overlay:
                     self.plotMode = 1
-
-                # Add the dataItem to the list of plotItems
-                self.plotItems.append(dataItem)
 
                 self.plot1d(dataItem)
                 self.data = dataItem.getData()
@@ -424,10 +430,10 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotView.addItem(dataItem)
         dataItem.sigPlotChanged.connect(lambda:
             self.dataUpdateSignal1d.emit(dataItem.getData()))
-        self.plotItem = dataItem
-        self.plotItem.scene().sigMouseMoved.connect(
+        self.plotItems.append(dataItem)
+        self.plotItems[-1].scene().sigMouseMoved.connect(
                 self.mousePosMoved)
-        self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.shapeDrawer.setView(self.plotView, self.plotItems[-1])
         self.viewBox.autoRange()
 
     def plot2d(self, imageItem):
@@ -655,11 +661,15 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         Parameters:
             data (numpy.ndarray)
         """
-        self.hist.blockSignals(True)
-        _min, _max = data.min(), data.max()
-        self.hist.setLevels(_min, _max)
-        self.setLevelBoxes()
-        self.hist.blockSignals(False)
+        try:
+            self.hist.blockSignals(True)
+            _min, _max = data.min(), data.max()
+            self.hist.setLevels(_min, _max)
+            self.setLevelBoxes()
+            self.hist.blockSignals(False)
+        except AttributeError:
+            # usually means trying to udpate hist with 1d data
+            pass
 
 class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
@@ -687,11 +697,14 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     def __init__(self, parent,  *args, **kwargs):
         self.parent = parent
         self.item_name = None
+
+        # set name of plot item
         if 'item_name' in kwargs.keys():
             self.setName(kwargs['item_name'])
-            del kwargs['item_name'] # pyqtgraph won't like it
+            # del kwargs['item_name'] # pyqtgraph won't like it
         else:
             self.setName('2DPlotItem')
+
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
@@ -812,11 +825,20 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         # setData with pyqtgraph.PlotDataItem.setData()
         self.parent = parent
         self.item_name = None
+
+        # set name of plot item
         if 'item_name' in kwargs.keys():
             self.setName(kwargs['item_name'])
             # del kwargs['item_name'] # pyqtgraph won't like it
         else:
             self.setName('1DPlotItem')
+
+        # if item is to be plotted over a 2D plot
+        if 'overlay' in kwargs.keys():
+            self.overlay = kwargs['overlay']
+        else:
+            self.overlay = False
+
         super(MagicPlotDataItem, self).__init__(*args, **kwargs)
         self.originalData = self.getData()
         self.parent.transformer.worker.sigTransformsCompleted.connect(super(MagicPlotDataItem, self).setData)
