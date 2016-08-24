@@ -22,7 +22,7 @@ QPEN_WIDTH = 0
 from . import shapeHolder
 from .grid import Grid
 from .pyqtgraph import RectROI, CircleROI, LineSegmentROI
-from .magicplot import *
+import magicplot
 import numpy
 import logging
 
@@ -843,7 +843,7 @@ class ShapeDialog(QtWidgets.QDialog):
         self.colorButton = QtGui.QPushButton("Color")
         self.roiButton = QtWidgets.QCheckBox("Set RoI")
         # if the plot isn't an image plot, don't allow ROIs
-        if type(self.parent().plotItem) is magicplot.MagicPlotImageItem:
+        if type(self.parent().parent().parent().parent().plotItems[0]) is magicplot.MagicPlotImageItem:
             self.roiButton.toggled.connect(self.parent().setROI)
         else:
             self.roiButton.setEnabled(False)
