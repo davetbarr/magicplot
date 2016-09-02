@@ -26,12 +26,12 @@ class Transformer(QtCore.QObject):
     sigActiveToggle = QtCore.pyqtSignal(bool)
     def __init__(self):
         super(Transformer, self).__init__()
-        self.tList = transformPlugins.TransformList(None)
-        self.tList.getTransforms()
-        self.aList = transformPlugins.TransformList(self.tList)
+        self.dialog = transformPlugins.TransformDialog()
         self.active = False
         self.worker = Transformer_Worker()
+        self.worker.plugin_dict = self.dialog.plugin_dict
         self.initContextMenu()
+
 
     def initContextMenu(self):
         """
@@ -50,9 +50,10 @@ class Transformer(QtCore.QObject):
         # add transforms to list below other options so they can be
         # quickly selected and applied
         self.quickTransforms = QtGui.QActionGroup(self)
-        for row, plugin in enumerate(self.tList):
-            action = QtGui.QAction(plugin.name, self.quickTransforms)
-            action.setData(row)
+        for row in range(self.dialog.tList.count()):
+            name = self.dialog.tList.item(row).text()
+            action = QtGui.QAction(name, self.quickTransforms)
+            action.setData(name)
             self.transMenu.addAction(action)
         self.quickTransforms.triggered.connect(self.addFromContextMenu)
 
@@ -63,17 +64,17 @@ class Transformer(QtCore.QObject):
         active.
         """
         activeCheck = self.transMenu.actions()[0]
-        if self.aList.rowCount() != 0:
-            self.aList.clear()
+        if self.dialog.aList.count() != 0:
+            self.dialog.aList.clear()
             activeCheck.setChecked(False)
-        row = action.data()
-        self.aList.append(self.tList[row])
+        name = action.data()
+        self.dialog.aList.addItem(name)
         activeCheck.setChecked(True)
 
     def transform(self, data):
         if self.active:
             self.worker.data = data
-            self.worker.aList = self.aList
+            self.worker.aList = self.dialog.aList
             self.worker.start()
         else:
             pass
@@ -82,8 +83,6 @@ class Transformer(QtCore.QObject):
         """
         Open the transforms dialog
         """
-        self.dialog = transformPlugins.TransformDialog(tList=self.tList,
-                aList=self.aList)
         self.dialog.show()
 
     def toggleRunning(self, checked):
@@ -94,16 +93,17 @@ class Transformer(QtCore.QObject):
         self.sigActiveToggle.emit(checked)
         
 class Transformer_Worker(QtCore.QThread):
-    sigTransformsCompleted = QtCore.pyqtSignal(object)
+    sigWorkerFinished = QtCore.pyqtSignal(object)
 
     def __init__(self, *args, **kwargs):
         super(Transformer_Worker, self).__init__(*args, **kwargs)
         self.data = None
         self.aList = None
+        self.plugin_dict = None
 
     def run(self):
         transformed_data = self.transform(self.data)
-        self.sigTransformsCompleted.emit(transformed_data)
+        self.sigWorkerFinished.emit(transformed_data)
 
     def transform(self, data):
         """
@@ -117,7 +117,8 @@ class Transformer_Worker(QtCore.QThread):
         Returns:
             numpy.ndarray: the transformed data
         """
-        for i in self.aList:
-            i.setData(data)
-            data = i.transform()
+        for row in range(self.aList.count()):
+            plugin = self.plugin_dict[self.aList.item(row).text()]
+            plugin.setData(data)
+            data = plugin.transform()
         return data

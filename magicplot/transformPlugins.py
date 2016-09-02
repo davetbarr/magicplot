@@ -102,15 +102,29 @@ class TransformDialog(QtGui.QDialog):
         self.activeViewLabel = QtGui.QLabel('Applied Transforms')
         self.layout.addWidget(self.tViewLabel, 0,0)
         self.layout.addWidget(self.activeViewLabel, 0, 1)
-        self.tView = TransformListView()
-        self.tView.setModel(tList)
-        self.activeView = ActiveTransformListView()
-        self.activeView.setModel(aList)
-        self.layout.addWidget(self.tView, 1,0)
-        self.layout.addWidget(self.activeView, 1,1)
+        self.tList = TransformListView(parent=self)
+        self.aList = ActiveTransformListView(parent=self)
+        self.layout.addWidget(self.tList, 1,0)
+        self.layout.addWidget(self.aList, 1,1)
         self.setLayout(self.layout)
+        self.getTransforms()
 
-class TransformListView(QtGui.QListView):
+    def getTransforms(self):
+        """
+        Search the directory './plugins/transforms' for plugins and add them
+        to the list
+        """
+        self.plugin_dict = {}
+        path = os.path.abspath(os.path.join(PATH, './plugins/transforms'))
+        for i in os.listdir(path):
+            fname = os.path.join(path, i)
+            with open(fname, 'r') as f:
+                exec(f.read(), globals())
+                plugin = Plugin()
+                self.plugin_dict[plugin.name] = plugin
+                self.tList.addItem(plugin.name)
+
+class TransformListView(QtGui.QListWidget):
     """
     List view showing transforms, can be dragged and dropped to active
     transform ListView
@@ -120,30 +134,30 @@ class TransformListView(QtGui.QListView):
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
 
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat("text/plain"):
-            event.setDropAction(QtCore.Qt.MoveAction)
-            event.accept()
-        else:
-            event.ignore()
+    # def dragEnterEvent(self, event):
+    #     if event.mimeData().hasFormat("text/plain"):
+    #         event.setDropAction(QtCore.Qt.MoveAction)
+    #         event.accept()
+    #     else:
+    #         event.ignore()
 
-    def startDrag(self, event):
-        index = self.indexAt(event.pos())
-        if not index.isValid():
-            return
+    # def startDrag(self, event):
+    #     index = self.indexAt(event.pos())
+    #     if not index.isValid():
+    #         return
 
-        mimeData = QtCore.QMimeData()
-        mimeData.setText(str(index.row()))
+    #     mimeData = QtCore.QMimeData()
+    #     mimeData.setText(str(index.row()))
 
-        drag = QtGui.QDrag(self)
-        drag.setMimeData(mimeData)
+    #     drag = QtGui.QDrag(self)
+    #     drag.setMimeData(mimeData)
 
-        result = drag.exec_(QtCore.Qt.MoveAction)
+    #     result = drag.exec_(QtCore.Qt.MoveAction)
 
-    def mouseMoveEvent(self, event):
-        self.startDrag(event)
+    # def mouseMoveEvent(self, event):
+    #     self.startDrag(event)
 
-class ActiveTransformListView(QtGui.QListView):
+class ActiveTransformListView(QtGui.QListWidget):
     """
     List view showing active transforms
     """
@@ -152,137 +166,140 @@ class ActiveTransformListView(QtGui.QListView):
         self.setDropIndicatorShown(True)
         self.setAcceptDrops(True)
         self.setDragEnabled(True)
+        self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
         # connect double click to remove plugin, click
         # to bring up param dialog
-        self.doubleClicked.connect(self.removePlugin)
-        self.clicked.connect(self.openParamDialog)
+        # self.itemClicked.connect(self.openParamDialog)
+        self.customContextMenuRequested.connect(self.showContextMenu)
 
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat("text/plain"):
-            event.accept()
+    def dropEvent(self, event):
+        if event.source() != self:
+            super(ActiveTransformListView, self).dropEvent(event)
         else:
             event.ignore()
 
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasFormat("text/plain"):
-            event.accept()
-        else:
-            event.ignore()
+    def removeItem(self):
+        for i in self.selectedItems():
+            self.takeItem(self.row(i))
 
-    def removePlugin(self, index):
-        self.model().removeRow(index.row())
-        try:
-            self.dialog.close()
-        except AttributeError:
-            pass
-
-    def openParamDialog(self, index):
-        plugin = self.model()[index.row()]
+    def openParamDialog(self):
+        item = self.currentItem()
+        plugin = self.parent().plugin_dict[item.text()]
         if plugin.params != {}:
-            self.dialog = ParamDialog(plugin)
-            self.dialog.show()
+            dialog = ParamDialog(plugin)
+            dialog.exec_()
 
+    def showContextMenu(self, pos):
+        globalpos = self.mapToGlobal(pos)
+        contextMenu = QtGui.QMenu()
+        delete_action = QtGui.QAction('Delete', self)
+        delete_action.triggered.connect(self.removeItem)
+        contextMenu.addAction(delete_action)
+        paramdialog_action = QtGui.QAction('Parameters', self)
+        paramdialog_action.triggered.connect(self.openParamDialog)
+        contextMenu.addAction(paramdialog_action)
+        contextMenu.exec_(globalpos)
 
+# class TransformList(QtCore.QAbstractListModel):
+#     """
+#     Model for TransformListView and ActiveTransformListView
+#     """
+#     def __init__(self, parent):
+#         super(TransformList, self).__init__(parent)
+#         self.parent = parent
+#         self.tList = []
 
-class TransformList(QtCore.QAbstractListModel):
-    """
-    Model for TransformListView and ActiveTransformListView
-    """
-    def __init__(self, parent):
-        super(TransformList, self).__init__(parent)
-        self.parent = parent
-        self.tList = []
+#     def rowCount(self, parent=QtCore.QModelIndex()):
+#         if parent.isValid(): return 0
+#         return len(self.tList)
 
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        if parent.isValid(): return 0
-        return len(self.tList)
+#     def flags(self, index):
+#         if index.isValid():
+#             return QtCore.Qt.ItemIsSelectable| \
+#                     QtCore.Qt.ItemIsDragEnabled| \
+#                     QtCore.Qt.ItemIsEnabled
+#         return QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsDragEnabled| \
+#                 QtCore.Qt.ItemIsDropEnabled|QtCore.Qt.ItemIsEnabled
 
-    def flags(self, index):
-        if index.isValid():
-            return QtCore.Qt.ItemIsSelectable| \
-                    QtCore.Qt.ItemIsDragEnabled| \
-                    QtCore.Qt.ItemIsEnabled
-        return QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsDragEnabled| \
-                QtCore.Qt.ItemIsDropEnabled|QtCore.Qt.ItemIsEnabled
+#     def data(self, index, role=QtCore.Qt.DisplayRole):
+#         if not index.isValid(): return QtCore.QVariant()
+#         if role == QtCore.Qt.DisplayRole: return self.tList[index.row()].name
+#         elif role == QtCore.Qt.UserRole:
+#             plugin = self.tList[index.row()]
+#             return plugin
+#         return QtCore.QVariant()
 
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid(): return QtCore.QVariant()
-        if role == QtCore.Qt.DisplayRole: return self.tList[index.row()].name
-        elif role == QtCore.Qt.UserRole:
-            plugin = self.tList[index.row()]
-            return plugin
-        return QtCore.QVariant()
+#     def setData(self, index, value, role=QtCore.Qt.EditRole):
+#         if not index.isValid() or role!=QtCore.Qt.DisplayRole: return False
 
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
-        if not index.isValid() or role!=QtCore.Qt.DisplayRole: return False
+#         self.tList[index.row()]=value.name
+#         self.dataChanged.emit(index,index)
+#         return True
 
-        self.tList[index.row()]=value.name
-        self.dataChanged.emit(index,index)
-        return True
+#     def append(self, transform):
+#         self.beginInsertRows(QtCore.QModelIndex(), 0, 0)
+#         self.tList.append(transform)
+#         self.endInsertRows()
 
-    def append(self, transform):
-        self.beginInsertRows(QtCore.QModelIndex(), 0, 0)
-        self.tList.append(transform)
-        self.endInsertRows()
+#     def insertRows(self, row, count, parent=QtCore.QModelIndex(), plugin=None):
+#         if parent.isValid(): return False
 
-    def insertRows(self, row, count, parent=QtCore.QModelIndex(), plugin=None):
-        if parent.isValid(): return False
+#         beginRow=max(0,row)
+#         endRow=min(row+count-1,len(self.tList))
 
-        beginRow=max(0,row)
-        endRow=min(row+count-1,len(self.tList))
+#         self.beginInsertRows(parent, beginRow, endRow)
 
-        self.beginInsertRows(parent, beginRow, endRow)
+#         for i in xrange(beginRow, endRow+1): self.tList.insert(i,plugin)
 
-        for i in xrange(beginRow, endRow+1): self.tList.insert(i,plugin)
+#         self.endInsertRows()
+#         return True
 
-        self.endInsertRows()
-        return True
+#     def removeRows(self, row, count, parent=QtCore.QModelIndex()):
+#         if parent.isValid(): return False
+#         if row >= len(self.tList) or row+count <=0: return False
 
-    def removeRows(self, row, count, parent=QtCore.QModelIndex()):
-        if parent.isValid(): return False
-        if row >= len(self.tList) or row+count <=0: return False
+#         beginRow = max(0,row)
+#         endRow = min(row+(count-1), len(self.tList)-1)
 
-        beginRow = max(0,row)
-        endRow = min(row+(count-1), len(self.tList)-1)
+#         self.beginRemoveRows(parent, beginRow, endRow)
 
-        self.beginRemoveRows(parent, beginRow, endRow)
+#         for i in range(beginRow, endRow+1): self.tList.pop(i)
 
-        for i in range(beginRow, endRow+1): self.tList.pop(i)
+#         self.endRemoveRows()
+#         return True
 
-        self.endRemoveRows()
-        return True
+#     def clear(self):
+#         count = self.rowCount()
+#         self.removeRows(0,count)
 
-    def clear(self):
-        count = self.rowCount()
-        self.removeRows(0,count)
+#     def __getitem__(self, index):
+#         return self.tList[index]
 
-    def __getitem__(self, index):
-        return self.tList[index]
+#     def getTransforms(self):
+#         """
+#         Search the directory './plugins/transforms' for plugins and add them
+#         to the list
+#         """
+#         path = os.path.abspath(os.path.join(PATH, './plugins/transforms'))
+#         for i in os.listdir(path):
+#             fname = os.path.join(path, i)
+#             with open(fname, 'r') as f:
+#                 exec(f.read(), globals())
+#                 plugin = Plugin()
+#                 self.append(plugin)
 
-    def getTransforms(self):
-        """
-        Search the directory '../plugins/transforms' for plugins and add them
-        to the list
-        """
-        path = os.path.abspath(os.path.join(PATH, './plugins/transforms'))
-        for i in os.listdir(path):
-            fname = os.path.join(path, i)
-            with open(fname, 'r') as f:
-                exec(f.read(), globals())
-                plugin = Plugin()
-                self.append(plugin)
-
-    def dropMimeData(self, data, action, row, column, parent):
-        tListRow = int(data.data("text/plain"))
-        plugin = copy.copy(self.parent[tListRow])
-        if action == QtCore.Qt.CopyAction:
-            if row == -1:
-                self.append(plugin)
-            else:
-                self.insertRows(row, 1, plugin=plugin)
-            return True
-        else: return False
+#     def dropMimeData(self, data, action, row, column, parent):
+#         tListRow = int(data.data("text/plain"))
+#         plugin = copy.copy(self.parent[tListRow])
+#         if action == QtCore.Qt.CopyAction:
+#             if row == -1:
+#                 self.append(plugin)
+#             else:
+#                 self.insertRows(row, 1, plugin=plugin)
+#             return True
+#         else: return False
 
 class ParamDialog(QtGui.QDialog):
     """
@@ -310,9 +327,6 @@ class ParamDialog(QtGui.QDialog):
 if __name__ == '__main__':
     app = QtGui.QApplication([])
     tList = TransformList(None)
-    tList.append(TransformPlugin(name='this'))
-    tList.append(TransformPlugin(name='and this'))
-    tList.getTransforms()
     aList = TransformList(None)
     Dialog = TransformDialog(tList=tList, aList=aList)
     Dialog.show()

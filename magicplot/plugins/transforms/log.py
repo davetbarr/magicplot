@@ -6,6 +6,6 @@ class Plugin(TransformPlugin):
 
     def transform(self):
         if len(self.data) == 2:
-            return (self.data[0],numpy.log10(self.data[1]))
+            return numpy.array([self.data[0],numpy.log10(self.data[1])]).T
         else:
             return numpy.log(self.data)
