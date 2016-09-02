@@ -697,6 +697,11 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     def __init__(self, parent,  *args, **kwargs):
         self.parent = parent
 
+        if 'name' in kwargs.keys():
+            self._name = kwargs['name']
+        else:
+            self._name = '2DPlotItem'
+
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
@@ -781,6 +786,13 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         Wrapper around QApplication.processEvents() so that live plotting works
         """
         QtGui.QApplication.instance().processEvents()
+
+    def name(self):
+        """
+        Added for parity with DataItem, which has a name method that can be 
+        set using keyword argument 'name'
+        """
+        return self._name
 
 class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     """
