@@ -705,7 +705,7 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
         self.sigImageChanged.connect(self.updateWindows)
-        self.parent.transformer.worker.sigWorkerFinished.connect(super(MagicPlotImageItem, self).setImage)
+        self.parent.transformer.worker.emitter.sigWorkerFinished.connect(super(MagicPlotImageItem, self).setImage)
 
     def setData(self, data, **kwargs):
         """
@@ -833,7 +833,7 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         super(MagicPlotDataItem, self).__init__(*args, **kwargs)
         self.originalData = self.getData()
         if not self.overlay:
-            self.parent.transformer.worker.sigWorkerFinished.connect(super(MagicPlotDataItem, self).setData)
+            self.parent.transformer.worker.emitter.sigWorkerFinished.connect(super(MagicPlotDataItem, self).setData)
 
 
     def informViewBoundsChanged(self):

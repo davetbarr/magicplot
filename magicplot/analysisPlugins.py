@@ -46,19 +46,23 @@ except ImportError:
 import numpy
 import logging
 
-class Analyser(QtCore.QThread):
-    
+class AnalyserEmitter(QtCore.QObject):
     sigAnalysisFinished = QtCore.pyqtSignal(object)
+    
+class Analyser(QtCore.QRunnable):
+    
     def __init__(self, parent):
         super(Analyser, self).__init__()
         self.data = None
+        self.emitter = AnalyserEmitter()
+        self.setAutoDelete(False)
 
     def setData(self, data):
         self.data = data
 
     def run(self):
         outputDict = self.runPlugins()
-        self.sigAnalysisFinished.emit(outputDict)
+        self.emitter.sigAnalysisFinished.emit(outputDict)
 
     def runPlugins(self):
         outputDict = []

@@ -75,7 +75,7 @@ class Transformer(QtCore.QObject):
         if self.active:
             self.worker.data = data
             self.worker.aList = self.dialog.aList
-            self.worker.start()
+            QtCore.QThreadPool.globalInstance().start(self.worker)
         else:
             pass
         
@@ -92,18 +92,22 @@ class Transformer(QtCore.QObject):
         self.active = checked
         self.sigActiveToggle.emit(checked)
         
-class Transformer_Worker(QtCore.QThread):
+class WorkerEmitter(QtCore.QObject):
     sigWorkerFinished = QtCore.pyqtSignal(object)
+
+class Transformer_Worker(QtCore.QRunnable):
 
     def __init__(self, *args, **kwargs):
         super(Transformer_Worker, self).__init__(*args, **kwargs)
         self.data = None
         self.aList = None
         self.plugin_dict = None
+        self.emitter = WorkerEmitter()
+        self.setAutoDelete(False)
 
     def run(self):
         transformed_data = self.transform(self.data)
-        self.sigWorkerFinished.emit(transformed_data)
+        self.emitter.sigWorkerFinished.emit(transformed_data)
 
     def transform(self, data):
         """

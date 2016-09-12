@@ -34,9 +34,9 @@ class AnalysisPane(QtWidgets.QWidget):
         self.setupUi()
         self.analyser = Analyser(self)
         self.analyser.pluginList = self.pluginList
-        self.analyser.sigAnalysisFinished.connect(self.updateOutput)
+        self.analyser.emitter.sigAnalysisFinished.connect(self.updateOutput)
         self.runPluginSignal.connect(self.updateData)
-        self.analyser.start()
+        QtCore.QThreadPool.globalInstance().start(self.analyser)
         self.data = None
 
     def setupUi(self):
@@ -73,7 +73,7 @@ class AnalysisPane(QtWidgets.QWidget):
 
     def runPlugins(self):
         self.analyser.data = self.data
-        self.analyser.start()
+        QtCore.QThreadPool.globalInstance().start(self.analyser)
 
     def updateOutput(self, outputDict):
         for i,j in zip(outputDict, self.pluginList):
