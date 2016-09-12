@@ -38,42 +38,54 @@ class AnalysisPane(QtWidgets.QWidget):
         self.runPluginSignal.connect(self.updateData)
         QtCore.QThreadPool.globalInstance().start(self.analyser)
         self.data = None
+        self.active = False
 
     def setupUi(self):
         self.layout = QtWidgets.QVBoxLayout()
         self.regionCheckbox = QtWidgets.QCheckBox('Region of Interest')
         self.regionCheckbox.toggled.connect(self.toggleRegion)
+        self.activeCheckbox = QtWidgets.QCheckBox('Activate Analysis')
+        self.activeCheckbox.toggled.connect(self.checkActiveHandler)
         self.tabWidget = QtWidgets.QTabWidget()
         for i in self.pluginList:
             i.generateUi()
             self.tabWidget.addTab(i, i.name)
+        self.layout.addWidget(self.activeCheckbox)
         self.layout.addWidget(self.regionCheckbox)
         self.layout.addWidget(self.tabWidget)
         self.setLayout(self.layout)
 
-    def updateData(self, data):
-        if data is not None:
-            self.data = data
-        try:
-            if self.region.isVisible():
-                pluginData = self.region.setData(self.data)
-                self.region.setBounds((self.data[0][0], self.data[0][-1]))
-            else:
-                pluginData = self.data
-        except AttributeError:
-            pluginData = self.data
-            logging.info('No 1D region - probably a 2d Plot')
-        except RuntimeError as e:
-            pluginData = self.data
-            logging.info(e)
+    def checkActiveHandler(self, checked):
+        if checked:
+            self.active = True
+        else:
+            self.active = False
 
-        for i in self.pluginList:
-            i.setData(pluginData)
-        self.runPlugins()
+    def updateData(self, data):
+        if self.active:
+            if data is not None:
+                self.data = data
+            try:
+                if self.region.isVisible():
+                    pluginData = self.region.setData(self.data)
+                    self.region.setBounds((self.data[0][0], self.data[0][-1]))
+                else:
+                    pluginData = self.data
+            except AttributeError:
+                pluginData = self.data
+                logging.info('No 1D region - probably a 2d Plot')
+            except RuntimeError as e:
+                pluginData = self.data
+                logging.info(e)
+
+            for i in self.pluginList:
+                i.setData(pluginData)
+            self.runPlugins()
 
     def runPlugins(self):
-        self.analyser.data = self.data
-        QtCore.QThreadPool.globalInstance().start(self.analyser)
+        if self.active:
+            self.analyser.data = self.data
+            QtCore.QThreadPool.globalInstance().start(self.analyser)
 
     def updateOutput(self, outputDict):
         for i,j in zip(outputDict, self.pluginList):

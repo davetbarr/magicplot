@@ -30,18 +30,25 @@
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="2">
-      <widget class="QLabel" name="label">
+     <item row="0" column="3">
+      <widget class="QDoubleSpinBox" name="x2Box"/>
+     </item>
+     <item row="0" column="4">
+      <widget class="QPushButton" name="updateButton">
        <property name="text">
-        <string>to</string>
+        <string>Update</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
       <widget class="QDoubleSpinBox" name="x1Box"/>
      </item>
-     <item row="0" column="3">
-      <widget class="QDoubleSpinBox" name="x2Box"/>
+     <item row="2" column="1">
+      <widget class="QLabel" name="gradientDisplay">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="gradientLabel">
@@ -57,17 +64,10 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLabel" name="gradientDisplay">
+     <item row="0" column="2">
+      <widget class="QLabel" name="label">
        <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="4">
-      <widget class="QPushButton" name="updateButton">
-       <property name="text">
-        <string>Update</string>
+        <string>to</string>
        </property>
       </widget>
      </item>
