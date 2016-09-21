@@ -370,14 +370,15 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
                 dataItem = MagicPlotImageItem(self, *args, **kwargs)
 
+                if self.plotMode != 2:
+                    self.plotMode = 2
+
                 # make sure we don't have more than a single 2d plotitem in the list
                 try:
                     self.plotItems[0] = dataItem
                 except IndexError:
                     self.plotItems.append(dataItem)
 
-                if self.plotMode != 2:
-                    self.plotMode = 2
 
                 # clear the view then add new dataItem
                 self.plotView.clear()
@@ -398,6 +399,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                 if self.plotMode != 1 and not dataItem.overlay:
                     self.plotMode = 1
 
+                self.plotItems.append(dataItem)
                 self.plot1d(dataItem)
                 self.data = dataItem.getData()
                 self.dataUpdateSignal1d.emit(self.data)
@@ -430,7 +432,6 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotView.addItem(dataItem)
         dataItem.sigPlotChanged.connect(lambda:
             self.dataUpdateSignal1d.emit(dataItem.getData()))
-        self.plotItems.append(dataItem)
         self.plotItems[-1].scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItems)
