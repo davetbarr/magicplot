@@ -433,7 +433,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotItems.append(dataItem)
         self.plotItems[-1].scene().sigMouseMoved.connect(
                 self.mousePosMoved)
-        self.shapeDrawer.setView(self.plotView, self.plotItems[-1])
+        self.shapeDrawer.setView(self.plotView, self.plotItems)
         self.viewBox.autoRange()
 
     def plot2d(self, imageItem):
@@ -454,7 +454,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.initHist(imageItem)
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
-        self.shapeDrawer.setView(self.plotView, self.plotItem)
+        self.shapeDrawer.setView(self.plotView, self.plotItems)
 
     def updatePlot(self):
         """

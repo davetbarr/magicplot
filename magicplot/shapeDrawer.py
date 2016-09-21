@@ -76,9 +76,9 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
     def getShapes(self):
         return self.shapes
 
-    def setView(self, view, item):
+    def setView(self, view, items):
         self.plotView = view
-        self.plotItem = item
+        self.plotItems = items
         try:
             self.viewBox = self.plotView.getViewBox()
         except AttributeError:
@@ -809,9 +809,14 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                     self.roi = LineSegmentROI([(x1,y1),(x2,y2)], removable=True)
                     self.plotView.addItem(self.roi)
             self.roi.sigRemoveRequested.connect(self.removeRoi)
-            self.plotRoiButton.setEnabled(True)
-            self.plotRoiButton.clicked.connect(self.plotROIHandler)
-            self.roi.sigRegionChanged.connect(self.plotItem.updateWindows)
+            # If there's a MagicPlotImageItem in the list, connect the region changed 
+            # signal to the updateWindows function of that plotItem
+            for i in self.plotItems:
+                if type(i) is magicplot.MagicPlotImageItem:
+                    self.roiPlotItem = i
+                    self.plotRoiButton.setEnabled(True)
+                    self.plotRoiButton.clicked.connect(self.plotROIHandler)
+                    self.roi.sigRegionChanged.connect(i.updateWindows)
         else:
             try:
                 self.plotView.removeItem(self.roi)
@@ -820,13 +825,15 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                 raise
 
     def plotROIHandler(self):
-        self.plotItem.plotROI(self.roi)
+        self.roiPlotItem.plotROI(self.roi)
 
     def removeRoi(self):
         self.plotView.removeItem(self.roi)
         self.roi = None
         self.plotRoiButton.setEnabled(False)
         self.plotRoiButton.clicked.disconnect(self.plotROIHandler)
+        if self.roiPlotItem:
+            self.roiPlotItem = None
 
 class ShapeDialog(QtWidgets.QDialog):
     """
