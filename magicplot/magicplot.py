@@ -832,9 +832,6 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         else:
             self.overlay = False
 
-        if 'color' in kwargs.keys():
-            self.setColor(kwargs['color'])
-
         self.originalData = self.getData()
         if not self.overlay:
             self.parent.transformer.worker.emitter.sigWorkerFinished.connect(super(MagicPlotDataItem, self).setData)
@@ -853,7 +850,6 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             color (str): The new color of the line,
                         ######POSSIBLE COLORS###########
         """
-
         self.setPen(pyqtgraph.mkPen(pyqtgraph.mkColor(color)))
 
     def setType(self, plotType):
