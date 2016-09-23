@@ -824,6 +824,7 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
     def __init__(self, parent, *args, **kwargs):
         # setData with pyqtgraph.PlotDataItem.setData()
         self.parent = parent
+        super(MagicPlotDataItem, self).__init__(*args, **kwargs)
 
         # if item is to be plotted over a 2D plot
         if 'overlay' in kwargs.keys():
@@ -831,7 +832,9 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
         else:
             self.overlay = False
 
-        super(MagicPlotDataItem, self).__init__(*args, **kwargs)
+        if 'color' in kwargs.keys():
+            self.setColor(kwargs['color'])
+
         self.originalData = self.getData()
         if not self.overlay:
             self.parent.transformer.worker.emitter.sigWorkerFinished.connect(super(MagicPlotDataItem, self).setData)
