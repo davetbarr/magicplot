@@ -98,7 +98,7 @@ class WorkerEmitter(QtCore.QObject):
 class Transformer_Worker(QtCore.QRunnable):
 
     def __init__(self, *args, **kwargs):
-        super(Transformer_Worker, self).__init__(*args, **kwargs)
+        super(Transformer_Worker, self).__init__(*args)
         self.data = None
         self.aList = None
         self.plugin_dict = None
