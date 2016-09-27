@@ -68,7 +68,7 @@ class Transformer(QtCore.QObject):
             self.dialog.aList.clear()
             activeCheck.setChecked(False)
         name = action.data()
-        self.dialog.aList.addItem(name)
+        self.dialog.aList.addItem(str(name.toString()))
         activeCheck.setChecked(True)
 
     def transform(self, data):
@@ -122,7 +122,7 @@ class Transformer_Worker(QtCore.QRunnable):
             numpy.ndarray: the transformed data
         """
         for row in range(self.aList.count()):
-            plugin = self.plugin_dict[self.aList.item(row).text()]
+            plugin = self.plugin_dict[str(self.aList.item(row).text())]
             plugin.setData(data)
             data = plugin.transform()
         return data
