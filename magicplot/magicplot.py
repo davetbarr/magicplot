@@ -181,7 +181,8 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         # default setting for autoLevels of 2d plots
         self.autoLevels = True
 
-
+    def mkQApp(self):
+        return pyqtgraph.mkQApp()
 
 
  # Methods to setup plot areaD
