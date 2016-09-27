@@ -457,6 +457,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItems)
+        self.viewBox.autoRange()
 
     def updatePlot(self):
         """
