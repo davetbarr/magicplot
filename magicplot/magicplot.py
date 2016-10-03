@@ -147,6 +147,10 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         # Set initial splitter sizes, hide by default
         self.drawSplitter.setSizes([2,1000,1])
         self.analysisSplitter.setSizes([70,1])
+        # self.drawSplitter.default_size = self.drawSplitter.saveState()
+        # self.analysisSplitter.default_size = self.analysisSplitter.saveState()
+        # self.drawSplitter.setSizes([0,1,0])
+        # self.analysisSplitter.setSizes([1,0])
         self.shapeDrawer.hide()
         self.histWidget.hide()
         self.analysisPane.hide()
@@ -155,7 +159,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.showMenu = QtWidgets.QMenu('Show...')
         showShapes = QtWidgets.QAction('Shapes', self)
         showShapes.setCheckable(True)
-        showShapes.toggled.connect(self.shapeDrawer.setVisible)
+        showShapes.toggled.connect(self.shapeDrawer.setVisible)        
         self.showMenu.addAction(showShapes)
         showHist = QtWidgets.QAction('Histogram', self)
         showHist.setCheckable(True)
@@ -176,7 +180,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotMode = 2
 
         # defualt setting for locking viewBox to data
-        self.panBounds = False
+        self.panBounds = True
 
         # default setting for autoLevels of 2d plots
         self.autoLevels = True
@@ -257,24 +261,31 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
            self.viewBox.autoRange()
            if bounds is True:
                self._panBounds = True
-               rect = self.viewBox.viewRect()
-               self.viewBox.setLimits(xMin=rect.left(),
-                                       xMax=rect.right(),
-                                       yMin=rect.top(),
-                                       yMax=rect.bottom())
+               self.updatePanBounds()
            else:
                self._panBounds = False
-               self.viewBox.setLimits(xMin=None,
-                                       xMax=None,
-                                       yMin=None,
-                                       yMax=None)
+               self.updatePanBounds()
         except AttributeError:
            pass
 
-    def updatePanBounds(self):
-        if self.panBounds is True:
-            self.panBounds = False
-            self.panBounds = True
+    def updatePanBounds(self, dataBounds=None, pad=100):
+        if self._panBounds:
+            try:
+                x0 = self.viewBox.childrenBounds()[0][0]
+                x1 = self.viewBox.childrenBounds()[0][1]
+                y0 = self.viewBox.childrenBounds()[1][0]
+                y1 = self.viewBox.childrenBounds()[1][1]
+                self.viewBox.setLimits(xMin=x0  -pad,
+                                        xMax=x1 + pad,
+                                        yMin=y0 - pad,
+                                        yMax=y1 + pad)
+            except TypeError:
+                pass
+        else:
+            self.viewBox.setLimits(xMin=None,
+                                    xMax=None,
+                                    yMin=None,
+                                    yMax=None)
 
 # Mouse tracking on plot
 ##############################
@@ -414,7 +425,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         if 'panBounds' in kwargs.keys():
             self.panBounds = kwargs['panBounds']
 
-        if self.panBounds:
+        if self._panBounds:
             self.updatePanBounds()
 
         self.transformer.sigActiveToggle.connect(
@@ -436,6 +447,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotItems[-1].scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItems)
+        self.updatePanBounds()
         self.viewBox.autoRange()
 
     def plot2d(self, imageItem):
@@ -457,6 +469,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.plotItem.scene().sigMouseMoved.connect(
                 self.mousePosMoved)
         self.shapeDrawer.setView(self.plotView, self.plotItems)
+        self.updatePanBounds()
         self.viewBox.autoRange()
 
     def updatePlot(self):
@@ -732,7 +745,7 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
 
     def informViewBoundsChanged(self):
         super(MagicPlotImageItem, self).informViewBoundsChanged()
-        if self.parent.panBounds:
+        if self.parent._panBounds:
             self.parent.updatePanBounds()
 
     def getData(self):
@@ -841,8 +854,8 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
 
     def informViewBoundsChanged(self):
         super(MagicPlotDataItem, self).informViewBoundsChanged()
-        if self.parent.panBounds:
-            self.parent.updatePanBounds()
+        if self.parent._panBounds:
+            self.parent.updatePanBounds(dataBounds=[self.dataBounds(0), self.dataBounds(1)])
 
     def setColor(self, color):
         """
