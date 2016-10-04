@@ -850,7 +850,7 @@ class ShapeDialog(QtWidgets.QDialog):
         self.colorButton = QtGui.QPushButton("Color")
         self.roiButton = QtWidgets.QCheckBox("Set RoI")
         # if the plot isn't an image plot, don't allow ROIs
-        if type(self.parent().parent().parent().parent().plotItems[0]) is magicplot.MagicPlotImageItem:
+        if type(self.parent().plotItems[0]) is magicplot.MagicPlotImageItem:
             self.roiButton.toggled.connect(self.parent().setROI)
         else:
             self.roiButton.setEnabled(False)

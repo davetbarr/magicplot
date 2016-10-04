@@ -837,6 +837,9 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.overlay = kwargs['overlay']
         else:
             self.overlay = False
+        
+        # define PlotDataItem to handle transforming data
+        self.transformItem = pyqtgraph.PlotDataItem()
 
         self.originalData = self.getData()
         if not self.overlay:
@@ -875,10 +878,13 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
             self.setSymbol(None)
 
     def setData(self, *args, **kwargs):
-        super(MagicPlotDataItem, self).setData(*args, **kwargs)
         # transform if transformer is active
-        if self.parent.transformer.active and self.getData()[0] is not None and not self.overlay:
-            self.parent.transformer.transform(self.getData()) 
+        if self.parent.transformer.active and not self.overlay:
+            self.transformItem.setData(*args, **kwargs)
+            self.parent.transformer.transform(self.transformItem.getData())
+            return
+
+        super(MagicPlotDataItem, self).setData(*args, **kwargs)
 
     def transformToggle(self, checked):
         """
