@@ -68,7 +68,9 @@ class Transformer(QtCore.QObject):
             self.dialog.aList.clear()
             activeCheck.setChecked(False)
         name = action.data()
-        self.dialog.aList.addItem(str(name.toString()))
+        if type(name) is QtCore.QVariant:
+            name = name.toString()
+        self.dialog.aList.addItem(str(name))
         activeCheck.setChecked(True)
 
     def transform(self, data):

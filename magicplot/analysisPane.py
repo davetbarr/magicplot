@@ -40,6 +40,9 @@ class AnalysisPane(QtWidgets.QWidget):
         self.data = None
         self.active = False
 
+        # get a reference to the magicplot
+        self.mplot = parent
+
     def setupUi(self):
         self.layout = QtWidgets.QVBoxLayout()
         self.regionCheckbox = QtWidgets.QCheckBox('Region of Interest')
@@ -102,7 +105,7 @@ class AnalysisPane(QtWidgets.QWidget):
 
     def toggleRegion(self, checked):
         # make sure we're in 1D plotMode!
-        if self.parent().parent().plotMode == 1:
+        if self.mplot.plotMode == 1:
             if checked:
                 self.region.setVisible(True)
                 self.region.setRegion(
