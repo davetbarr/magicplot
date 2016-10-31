@@ -163,6 +163,11 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
         self.plotItems = []
 
+        # Menu action for toggling fullscreen mode
+        self.toggleFullscreenAction = QtWidgets.QAction('Fullscreen Mode', self)
+        self.toggleFullscreenAction.setCheckable(True)
+        self.toggleFullscreenAction.toggled.connect(self.toggleFullscreen)
+
         # Guess that 2-d plot will be common
         # Need to initialise using plotMode = 2 or will not add PlotWidget
         # to layout
@@ -191,6 +196,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.viewBox = self.plotView.getViewBox()
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
+        self.viewBox.menu.addAction(self.toggleFullscreenAction)
         self.analysisPane.initRegion(self.plotView)
         self.plotItems = []
 
@@ -204,6 +210,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         # self.hist.setImageItem(self.plotItem)
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
+        self.viewBox.menu.addAction(self.toggleFullscreenAction)
 
         # lock aspect ratio to 1:1? Is there any reason not to?
         self.viewBox.setAspectLocked()
@@ -277,6 +284,13 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                                     xMax=None,
                                     yMin=None,
                                     yMax=None)
+
+    def toggleFullscreen(self, check):
+        if check:
+            self.showFullScreen()
+        else:
+            self.showNormal()
+        
 
 # Mouse tracking on plot
 ##############################
