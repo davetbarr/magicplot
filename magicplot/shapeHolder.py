@@ -67,12 +67,12 @@ def getShapeName(shape):
         str: A name describing that shape
     """
 
-    if type(shape)==QtGui.QGraphicsRectItem:
+    if type(shape)==QtWidgets.QGraphicsRectItem:
         r = shape.rect()
         return "Rectangle @ ({:.1f}, {:.1f}), size: ({:.1f}, {:.1f})".format(
                 r.x(), r.y(), r.width(), r.height()
                 )
-    elif type(shape)==QtGui.QGraphicsLineItem:
+    elif type(shape)==QtWidgets.QGraphicsLineItem:
         l = shape.line()
         return "Line @ ({:.1f}, {:.1f}) to ({:.1f}, {:.1f})".format(
                 l.x1(), l.y1(), l.x2(), l.y2()
@@ -84,7 +84,7 @@ def getShapeName(shape):
         return "Grid @ ({:.1f}, {:.1f}), Rows: {:d}, Columns: {:d}".format(
                 r.x(), r.y(), nRows, nColumns
                 )
-    elif type(shape)==QtGui.QGraphicsEllipseItem:
+    elif type(shape)==QtWidgets.QGraphicsEllipseItem:
         c = shape.rect()
         center = c.center()
         radius = c.width()/2

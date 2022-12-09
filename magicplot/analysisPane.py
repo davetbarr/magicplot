@@ -14,7 +14,8 @@ except ImportError:
     PyQTv = 4
 
 from .analysisPlugins import AnalysisPlugin, Analyser
-from . import pyqtgraph
+# from . import pyqtgraph
+import pyqtgraph
 
 import numpy
 import magicplot
@@ -98,6 +99,9 @@ class AnalysisPane(QtWidgets.QWidget):
         self.pluginList = []
         path = os.path.abspath(os.path.join(PATH, './plugins/analysis'))
         for i in os.listdir(path):
+            if i in ["__init__.py", "__pycache__"]:
+                continue
+
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
                 exec(f.read(), globals())

@@ -16,24 +16,25 @@ Ui_MagicPlot= uic.loadUiType(os.path.join(PATH,"magicPlot.ui"))[0]
 # import magicPlot_ui
 from . import shapeHolder, shapeDrawer, analysisPane, transforms, plugins
 
-from . import pyqtgraph
+# from . import pyqtgraph
+import pyqtgraph
 import numpy
 import logging
 
 # set default colourmaps available
-pyqtgraph.graphicsItems.GradientEditorItem.Gradients = pyqtgraph.pgcollections.OrderedDict([
-    ('viridis', {'ticks': [(0.,  ( 68,   1,  84, 255)),
-                           (0.2, ( 65,  66, 134, 255)),
-                           (0.4, ( 42, 118, 142, 255)),
-                           (0.6, ( 32, 165, 133, 255)),
-                           (0.8, (112, 206,  86, 255)),
-                           (1.0, (241, 229,  28, 255))], 'mode':'rgb'}),
-    ('coolwarm', {'ticks': [(0.0, ( 59,  76, 192)),
-                            (0.5, (220, 220, 220)),
-                            (1.0, (180, 4, 38))], 'mode': 'rgb'}),
-    ('grey', {'ticks': [(0.0, (0, 0, 0, 255)),
-                        (1.0, (255, 255, 255, 255))], 'mode': 'rgb'}),
-        ])
+# pyqtgraph.graphicsItems.GradientEditorItem.Gradients = pyqtgraph.pgcollections.OrderedDict([
+#     ('viridis', {'ticks': [(0.,  ( 68,   1,  84, 255)),
+#                            (0.2, ( 65,  66, 134, 255)),
+#                            (0.4, ( 42, 118, 142, 255)),
+#                            (0.6, ( 32, 165, 133, 255)),
+#                            (0.8, (112, 206,  86, 255)),
+#                            (1.0, (241, 229,  28, 255))], 'mode':'rgb'}),
+#     ('coolwarm', {'ticks': [(0.0, ( 59,  76, 192)),
+#                             (0.5, (220, 220, 220)),
+#                             (1.0, (180, 4, 38))], 'mode': 'rgb'}),
+#     ('grey', {'ticks': [(0.0, (0, 0, 0, 255)),
+#                         (1.0, (255, 255, 255, 255))], 'mode': 'rgb'}),
+#         ])
 
 
 

@@ -8,10 +8,10 @@ class Plugin(AnalysisPlugin):
         """
         overwrite this method as it's different to all the others
         """
-        self.layout = QtGui.QGridLayout()
-        self.codeBox = QtGui.QTextEdit('Put your code here!')
+        self.layout = QtWidgets.QGridLayout()
+        self.codeBox = QtWidgets.QTextEdit('Put your code here!')
         self.codeBox.textChanged.connect(self.setParams)
-        self.outputBox = QtGui.QTextEdit()
+        self.outputBox = QtWidgets.QTextEdit()
         self.layout.addWidget(self.codeBox, 0,0)
         self.layout.addWidget(self.outputBox, 0, 1)
         self.setLayout(self.layout)

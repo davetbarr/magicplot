@@ -14,8 +14,8 @@ git_full = "$Format:%H$"
 
 # these strings are filled in when 'setup.py versioneer' creates _version.py
 tag_prefix = ""
-parentdir_prefix = "soapy-"
-versionfile_source = "soapy/_version.py"
+parentdir_prefix = "magicplot-"
+versionfile_source = "magicplot/_version.py"
 
 import os, sys, re, subprocess, errno
 

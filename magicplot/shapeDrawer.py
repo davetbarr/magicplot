@@ -21,7 +21,8 @@ QPEN_WIDTH = 0
 
 from . import shapeHolder
 from .grid import Grid
-from .pyqtgraph import RectROI, CircleROI, LineSegmentROI
+# from .pyqtgraph import RectROI, CircleROI, LineSegmentROI
+from pyqtgraph import RectROI, CircleROI, LineSegmentROI
 import magicplot
 import numpy
 import logging
@@ -113,11 +114,11 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
             self.dialog = RectDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyRectChanges)
             self.dialog.finished.connect(self.applyRectChanges)
-        elif type(shape)==QtGui.QGraphicsLineItem:
+        elif type(shape)==QtWidgets.QGraphicsLineItem:
             self.dialog = LineDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyLineChanges)
             self.dialog.finished.connect(self.applyLineChanges)
-        elif type(shape)==QtGui.QGraphicsEllipseItem:
+        elif type(shape)==QtWidgets.QGraphicsEllipseItem:
             self.dialog = CircDialog(shape=shape, parent=self)
             self.dialog.applySig.connect(self.applyCircChanges)
             self.dialog.finished.connect(self.applyCircChanges)
@@ -248,7 +249,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
         """
         Used by MagicPlot API to draw rect from command line
         """
-        self.shapes.append(QtGui.QGraphicsRectItem(
+        self.shapes.append(QtWidgets.QGraphicsRectItem(
         				QtCore.QRectF(x,y,xSize,ySize)))
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
         self.shapes[-1].setPen(pen)
@@ -269,7 +270,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 
     def drawRectFromValues(self):
         x, y, xSize, ySize, color, accepted = self.dialog.getValues()
-        self.shapes.append(QtGui.QGraphicsRectItem(
+        self.shapes.append(QtWidgets.QGraphicsRectItem(
                 QtCore.QRectF(x,y,xSize,ySize)))
         self.shapes[-1].setPen(self.pen)
         self.plotView.addItem(self.shapes[-1])
@@ -317,7 +318,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                 and pos.x() < scene.width()):
 
             self.rectStartPos = (imgPos.x(), imgPos.y())
-            self.shapes.append(QtGui.QGraphicsRectItem(
+            self.shapes.append(QtWidgets.QGraphicsRectItem(
                     QtCore.QRectF(imgPos.x(),imgPos.y(),0,0)))
             pen = QtGui.QPen(QtGui.QBrush(self.dialog.color), QPEN_WIDTH)
             self.shapes[-1].setPen(pen)
@@ -359,7 +360,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
         """
         Used by MagicPlot API to draw line from command line
         """
-        self.shapes.append(QtGui.QGraphicsLineItem(x1,y1,x2,y2))
+        self.shapes.append(QtWidgets.QGraphicsLineItem(x1,y1,x2,y2))
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
         self.shapes[-1].setPen(pen)
         self.plotView.addItem(self.shapes[-1])
@@ -379,7 +380,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 
     def drawLineFromValues(self):
         x1, y1, x2, y2, color, accepted = self.dialog.getValues()
-        self.shapes.append(QtGui.QGraphicsLineItem(x1,y1,x2,y2))
+        self.shapes.append(QtWidgets.QGraphicsLineItem(x1,y1,x2,y2))
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
         self.shapes[-1].setPen(pen)
         self.plotView.addItem(self.shapes[-1])
@@ -424,7 +425,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
             self.lineStartPos = (imgPos.x(), imgPos.y())
 
             self.shapes.append(
-                    QtGui.QGraphicsLineItem(QtCore.QLineF(
+                    QtWidgets.QGraphicsLineItem(QtCore.QLineF(
                             imgPos.x(),imgPos.y(),imgPos.x(),imgPos.y())))
             self.plotView.addItem(self.shapes[-1])
             pen = QtGui.QPen(QtGui.QBrush(self.dialog.color), QPEN_WIDTH)
@@ -577,7 +578,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 ########## Circle Drawing ###########
 
     def addCirc(self, x, y, r, color):
-        circ = QtGui.QGraphicsEllipseItem(
+        circ = QtWidgets.QGraphicsEllipseItem(
                         QtCore.QRectF(x-r, y-r, 2*r, 2*r))
         self.shapes.append(circ)
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
@@ -599,7 +600,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 
     def drawCircFromValues(self):
         x, y, r, color, accepted = self.dialog.getValues()
-        self.shapes.append(QtGui.QGraphicsEllipseItem(
+        self.shapes.append(QtWidgets.QGraphicsEllipseItem(
                         QtCore.QRectF(x-r,y-r,2*r,2*r)))
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
         self.shapes[-1].setPen(pen)
@@ -637,7 +638,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                 and pos.x() < scene.width()):
 
             self.circCenter = (imgPos.x(), imgPos.y())
-            self.shapes.append(QtGui.QGraphicsEllipseItem(
+            self.shapes.append(QtWidgets.QGraphicsEllipseItem(
                     QtCore.QRectF(imgPos.x(), imgPos.y(), 0, 0)))
             pen = QtGui.QPen(QtGui.QBrush(self.dialog.color), QPEN_WIDTH)
             self.shapes[-1].setPen(pen)
@@ -671,7 +672,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 ########## Elipse Drawing ###########
 
     def addElipse(self, x, y, rx, ry, color):
-        elipse = QtGui.QGraphicsEllipseItem(
+        elipse = QtWidgets.QGraphicsEllipseItem(
                         QtCore.QRectF(x-rx, y-ry, 2*rx, 2*ry))
         self.shapes.append(elipse)
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
@@ -693,7 +694,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
 
     def drawElipseFromValues(self):
         x, y, rx, ry, color, accepted = self.dialog.getValues()
-        self.shapes.append(QtGui.QGraphicsEllipseItem(
+        self.shapes.append(QtWidgets.QGraphicsEllipseItem(
                         QtCore.QRectF(x-rx, y-ry, 2*rx, 2*ry)))
         pen = QtGui.QPen(QtGui.QBrush(color), QPEN_WIDTH)
         self.shapes[-1].setPen(pen)
@@ -733,7 +734,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                 and pos.x() < scene.width()):
 
             self.elipseCenter = (imgPos.x(), imgPos.y())
-            self.shapes.append(QtGui.QGraphicsEllipseItem(
+            self.shapes.append(QtWidgets.QGraphicsEllipseItem(
                     QtCore.QRectF(imgPos.x(), imgPos.y(), 0, 0)))
             pen = QtGui.QPen(QtGui.QBrush(self.dialog.color), QPEN_WIDTH)
             self.shapes[-1].setPen(pen)
@@ -769,7 +770,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
     def setROI(self, checked):
         if checked:
             shape = self.dialog.shape
-            if type(shape) in [QtGui.QGraphicsRectItem, Grid]:
+            if type(shape) in [QtWidgets.QGraphicsRectItem, Grid]:
                 x, y, xSize, ySize  = self.dialog.getValues()[:4]
                 try:
                     if type(self.roi) is RectROI:
@@ -782,7 +783,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                 except AttributeError:
                     self.roi = RectROI([x, y], [xSize, ySize], removable=True)
                     self.plotView.addItem(self.roi)
-            elif type(shape) is QtGui.QGraphicsEllipseItem:
+            elif type(shape) is QtWidgets.QGraphicsEllipseItem:
                 x, y, r = self.dialog.getValues()[:3]
                 cent_x, cent_y, diam = x-r, y-r, 2*r
                 try:
@@ -796,7 +797,7 @@ class ShapeDrawer(QtWidgets.QWidget, Ui_ShapeDrawer):
                 except AttributeError:
                     self.roi = CircleROI([cent_x,cent_y],[diam,diam], removable=True)
                     self.plotView.addItem(self.roi)
-            elif type(shape) is QtGui.QGraphicsLineItem:
+            elif type(shape) is QtWidgets.QGraphicsLineItem:
                 x1, y1, x2, y2 = self.dialog.getValues()[:4]
                 try:
                     if type(self.roi) is LineSegmentROI:
@@ -847,7 +848,7 @@ class ShapeDialog(QtWidgets.QDialog):
         super(ShapeDialog, self).__init__(parent)
 
         self.layout = QtWidgets.QGridLayout(self)
-        self.colorButton = QtGui.QPushButton("Color")
+        self.colorButton = QtWidgets.QPushButton("Color")
         self.roiButton = QtWidgets.QCheckBox("Set RoI")
         # if the plot isn't an image plot, don't allow ROIs
         if type(self.parent().plotItems[0]) is magicplot.MagicPlotImageItem:
@@ -855,7 +856,7 @@ class ShapeDialog(QtWidgets.QDialog):
         else:
             self.roiButton.setEnabled(False)
         self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
         self.buttons.addButton(self.roiButton, 3)
         self.buttons.accepted.connect(self.accept)
@@ -1161,12 +1162,12 @@ class ElipseDialog(ShapeDialog):
         self.setWindowTitle("Draw Elipse")
 
     def setupUi(self):
-        self.posLabel = QtGui.QLabel("Pos (x,y)")
-        self.xPosBox = QtGui.QDoubleSpinBox()
-        self.yPosBox = QtGui.QDoubleSpinBox()
-        self.radiusLabel = QtGui.QLabel("Radius (x,y)")
-        self.radiusXBox = QtGui.QDoubleSpinBox()
-        self.radiusYBox = QtGui.QDoubleSpinBox()
+        self.posLabel = QtWidgets.QLabel("Pos (x,y)")
+        self.xPosBox = QtWidgets.QDoubleSpinBox()
+        self.yPosBox = QtWidgets.QDoubleSpinBox()
+        self.radiusLabel = QtWidgets.QLabel("Radius (x,y)")
+        self.radiusXBox = QtWidgets.QDoubleSpinBox()
+        self.radiusYBox = QtWidgets.QDoubleSpinBox()
 
         self.layout.addWidget(self.posLabel)
         self.layout.addWidget(self.xPosBox)
@@ -1211,7 +1212,7 @@ class ElipseDialog(ShapeDialog):
         else:
             logging.info("No shape!")
 
-class ShapeList(QtGui.QListView):
+class ShapeList(QtWidgets.QListView):
     """
     QListView to view shapes drawn on MagicPlot, reimplemented keyPressEvent
     to handle delete key (n.b. this breaks the arrow keys)
@@ -1229,8 +1230,8 @@ class ShapeList(QtGui.QListView):
 
     def contextMenuEvent(self, event):
         index = self.indexAt(event.pos())
-        menu = QtGui.QMenu(self)
-        delete = QtGui.QAction('Delete shape', self)
+        menu = QtWidgets.QMenu(self)
+        delete = QtWidgets.QAction('Delete shape', self)
         delete.triggered.connect(
             lambda: self.parent().shapes.removeShape(index))
         menu.addAction(delete)

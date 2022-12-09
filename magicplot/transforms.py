@@ -37,22 +37,22 @@ class Transformer(QtCore.QObject):
         """
         Right-click context menu shown under 'Transforms'
         """
-        self.transMenu = QtGui.QMenu('Transforms')
-        runTransforms = QtGui.QAction('Activate Transforms', self)
+        self.transMenu = QtWidgets.QMenu('Transforms')
+        runTransforms = QtWidgets.QAction('Activate Transforms', self)
         runTransforms.setCheckable(True)
         runTransforms.toggled.connect(self.toggleRunning)
         self.transMenu.addAction(runTransforms)
-        openDialog = QtGui.QAction('Open Transforms dialog', self)
+        openDialog = QtWidgets.QAction('Open Transforms dialog', self)
         openDialog.triggered.connect(self.openDialog)
         self.transMenu.addAction(openDialog)
         self.transMenu.addSeparator()
 
         # add transforms to list below other options so they can be
         # quickly selected and applied
-        self.quickTransforms = QtGui.QActionGroup(self)
+        self.quickTransforms = QtWidgets.QActionGroup(self)
         for row in range(self.dialog.tList.count()):
             name = self.dialog.tList.item(row).text()
-            action = QtGui.QAction(name, self.quickTransforms)
+            action = QtWidgets.QAction(name, self.quickTransforms)
             action.setData(name)
             self.transMenu.addAction(action)
         self.quickTransforms.triggered.connect(self.addFromContextMenu)

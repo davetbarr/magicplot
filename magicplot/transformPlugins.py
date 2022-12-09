@@ -71,10 +71,10 @@ class TransformPlugin(QtCore.QObject):
         pass
 
     def generateUi(self):
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
         self.paramBoxList = {}
         for i in self.params.keys():
-            label = QtGui.QLabel(i)
+            label = QtWidgets.QLabel(i)
             box = QtGui.QDoubleSpinBox()
             box.setValue(self.params[i])
             box.valueChanged.connect(self.setParams)
@@ -82,7 +82,7 @@ class TransformPlugin(QtCore.QObject):
             self.layout.addWidget(label)
             self.layout.addWidget(box)
 
-class TransformDialog(QtGui.QDialog):
+class TransformDialog(QtWidgets.QDialog):
     """
     Dialog that shows available transforms in a QListView, and active
     transforms in another. Transforms are applied from top to bottom
@@ -97,9 +97,9 @@ class TransformDialog(QtGui.QDialog):
         self.setupUi(tList, aList)
 
     def setupUi(self, tList, aList):
-        self.layout = QtGui.QGridLayout()
-        self.tViewLabel = QtGui.QLabel('Available Transforms')
-        self.activeViewLabel = QtGui.QLabel('Applied Transforms')
+        self.layout = QtWidgets.QGridLayout()
+        self.tViewLabel = QtWidgets.QLabel('Available Transforms')
+        self.activeViewLabel = QtWidgets.QLabel('Applied Transforms')
         self.layout.addWidget(self.tViewLabel, 0,0)
         self.layout.addWidget(self.activeViewLabel, 0, 1)
         self.tList = TransformListView(parent=self)
@@ -117,6 +117,9 @@ class TransformDialog(QtGui.QDialog):
         self.plugin_dict = {}
         path = os.path.abspath(os.path.join(PATH, './plugins/transforms'))
         for i in os.listdir(path):
+            if i in ['__init__.py', '__pycache__']:
+                continue
+
             fname = os.path.join(path, i)
             with open(fname, 'r') as f:
                 exec(f.read(), globals())
@@ -124,7 +127,7 @@ class TransformDialog(QtGui.QDialog):
                 self.plugin_dict[plugin.name] = plugin
                 self.tList.addItem(plugin.name)
 
-class TransformListView(QtGui.QListWidget):
+class TransformListView(QtWidgets.QListWidget):
     """
     List view showing transforms, can be dragged and dropped to active
     transform ListView
@@ -157,7 +160,7 @@ class TransformListView(QtGui.QListWidget):
     # def mouseMoveEvent(self, event):
     #     self.startDrag(event)
 
-class ActiveTransformListView(QtGui.QListWidget):
+class ActiveTransformListView(QtWidgets.QListWidget):
     """
     List view showing active transforms
     """
@@ -166,7 +169,7 @@ class ActiveTransformListView(QtGui.QListWidget):
         self.setDropIndicatorShown(True)
         self.setAcceptDrops(True)
         self.setDragEnabled(True)
-        self.setDragDropMode(QtGui.QAbstractItemView.DragDrop)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
         # connect double click to remove plugin, click
@@ -193,11 +196,11 @@ class ActiveTransformListView(QtGui.QListWidget):
 
     def showContextMenu(self, pos):
         globalpos = self.mapToGlobal(pos)
-        contextMenu = QtGui.QMenu()
-        delete_action = QtGui.QAction('Delete', self)
+        contextMenu = QtWidgets.QMenu()
+        delete_action = QtWidgets.QAction('Delete', self)
         delete_action.triggered.connect(self.removeItem)
         contextMenu.addAction(delete_action)
-        paramdialog_action = QtGui.QAction('Parameters', self)
+        paramdialog_action = QtWidgets.QAction('Parameters', self)
         paramdialog_action.triggered.connect(self.openParamDialog)
         contextMenu.addAction(paramdialog_action)
         contextMenu.exec_(globalpos)
@@ -301,7 +304,7 @@ class ActiveTransformListView(QtGui.QListWidget):
 #             return True
 #         else: return False
 
-class ParamDialog(QtGui.QDialog):
+class ParamDialog(QtWidgets.QDialog):
     """
     Dialog to get user defined parameters for a particular
     plugin in the active plugins list

@@ -81,7 +81,7 @@ class Grid(QtWidgets.QGraphicsRectItem):
         except AttributeError:
             pass
         self.hLines = []
-        self.hLines = [QtGui.QGraphicsLineItem(self) for i in range(nRows-1)]
+        self.hLines = [QtWidgets.QGraphicsLineItem(self) for i in range(nRows-1)]
 
     @property
     def nColumns(self):
@@ -96,4 +96,4 @@ class Grid(QtWidgets.QGraphicsRectItem):
         except AttributeError:
             pass
         self.vLines = []
-        self.vLines = [QtGui.QGraphicsLineItem(self) for i in range(nColumns-1)]
+        self.vLines = [QtWidgets.QGraphicsLineItem(self) for i in range(nColumns-1)]

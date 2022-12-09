@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 import versioneer
 
 
@@ -15,9 +15,15 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author='Oliver Farley',
     author_email='o.j.d.farley@durham.ac.uk',
-    packages=['magicplot'],
+    packages=['magicplot', 
+            'magicplot.plugins',
+            'magicplot.plugins.analysis',
+            'magicplot.plugins.transforms'
+        ],
     scripts=[],
     description='A Generalised Plotting Tool for Science',
     long_description=open('README.md').read(),
+    package_data={'magicplot': ['*.ui']},
+    include_package_data=True
 
 )
