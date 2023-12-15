@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "magicplot"
+authors = [
+  { name="Ollie Farley", email="o.j.d.farley@durham.ac.uk" },
+]
+description = "A generalised, powerful plotting tool for science"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+license = {file = "LICENSE.md"}
+dependencies = ["numpy", 
+"pyqtgraph",
+"PyQt5",
+"scipy"]
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+write_to = "magicplot/_version.py"
+
+[project.urls]
+Homepage = "https://github.com/ojdf/magicplot"
