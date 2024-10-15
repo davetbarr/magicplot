@@ -13,9 +13,12 @@ class DummyCCD():
     def __init__(self, size_x, size_y):
         self.size_x = size_x
         self.size_y = size_y
+        self.data = numpy.random.normal(0,1,size=(10, self.size_x, self.size_y))
+        self.i = 0
 
     def grab_frame(self):
-        return numpy.random.normal(0,1,size=(self.size_x, self.size_y))
+        self.i += 1
+        return self.data[self.i%10]
 
 class UpdateThread(QtCore.QThread):
     """
