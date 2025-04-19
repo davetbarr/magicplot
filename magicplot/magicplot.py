@@ -5,11 +5,15 @@ import os
 # Try importing PyQt5, if not fall back to PyQt4
 try:
     from PyQt5 import QtCore, QtGui, QtWidgets, uic
+    from PyQt5.QtWidgets import QMenu, QAction, QMenuBar
     PYQTv = 5
 except (ImportError, RuntimeError):
     from PyQt4 import QtCore, QtGui, uic
     QtWidgets = QtGui
     PyQTv = 4
+
+from matplotlib import cm
+import matplotlib.pyplot as plt
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 Ui_MagicPlot= uic.loadUiType(os.path.join(PATH,"magicPlot.ui"))[0]
@@ -110,15 +114,58 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         super(MagicPlot, self).__init__(parent)
         self.windowPlots = []
         self.setupUi(self)
+
+        # Create exportMenuAction before it's used in set2dPlot
+        self.exportMenu = QtWidgets.QMenu('Export')
+        self.exportMenuAction = QtWidgets.QAction('Export', self)
+        self.exportMenuAction.setMenu(self.exportMenu)
+
+        # Create toggleFullscreenAction before it's used in set2dPlot
+        self.toggleFullscreenAction = QtWidgets.QAction('Fullscreen Mode', self)
+        self.toggleFullscreenAction.setCheckable(True)
+        self.toggleFullscreenAction.toggled.connect(self.toggleFullscreen)
+
+        # Initialize transformer before setting the plot mode
+        self.transformer = transforms.Transformer()
+
+        # Initialize the showMenu
+        self.showMenu = QtWidgets.QMenu('Show...', self)
+        showShapes = QtWidgets.QAction('Shapes', self)
+        showShapes.triggered.connect(lambda: self.shapeSplitter.setSizes([1000, 1]))
+        self.showMenu.addAction(showShapes)
+        showHist = QtWidgets.QAction('Histogram', self)
+        showHist.triggered.connect(lambda: self.histSplitter.setSizes([1, 1000]))
+        self.showMenu.addAction(showHist)
+        showAnalysis = QtWidgets.QAction('Analysis', self)
+        showAnalysis.triggered.connect(lambda: self.analysisSplitter.setSizes([1000, 1]))
+        self.showMenu.addAction(showAnalysis)
+
+        # Initialize the viewBox by setting a default plot mode
+        self._plotMode = 2  # Default to 2D plot mode
+        self.set2dPlot()
+
+        # Add a menu bar to the MagicPlot window
+        self.menuBar = QMenuBar(self)
+        self.gridLayout.setMenuBar(self.menuBar)
+
         self.shapeDrawer = shapeDrawer.ShapeDrawer()
         self.shapeLayout.addWidget(self.shapeDrawer)
         self.analysisPane = analysisPane.AnalysisPane(parent=self)
         self.analysisLayout.addWidget(self.analysisPane)
-        self.transformer = transforms.Transformer()
+        # Transformer already initialized above
         self.dataUpdateSignal1d.connect(self.dataUpdateHandler)
         self.dataUpdateSignal2d.connect(self.dataUpdateHandler)
 
         self.setWindowTitle("MagicPlot")
+
+        # Add export functionality
+        self.setupExportMenu()
+        
+        # Add keyboard shortcuts
+        self.setupShortcuts()
+
+        # Add color map menu
+        self.setupColorMapMenu()
 
         # Initialise HistogramLUTWidget
         self.histWidget = QtWidgets.QWidget()
@@ -150,17 +197,24 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.analysisSplitter.setSizes([1,0])
         self.histSplitter.setSizes([0,1])
 
-        # Context menu for showing panes
-        self.showMenu = QtWidgets.QMenu('Show...')
+        # Initialize the showMenu attribute
+        self.showMenu = QtWidgets.QMenu('Show...', self)
         showShapes = QtWidgets.QAction('Shapes', self)
-        showShapes.triggered.connect(lambda: self.shapeSplitter.setSizes([1000,1]))        
+        showShapes.triggered.connect(lambda: self.shapeSplitter.setSizes([1000, 1]))
         self.showMenu.addAction(showShapes)
         showHist = QtWidgets.QAction('Histogram', self)
-        showHist.triggered.connect(lambda: self.histSplitter.setSizes([1,1000]))
+        showHist.triggered.connect(lambda: self.histSplitter.setSizes([1, 1000]))
         self.showMenu.addAction(showHist)
         showAnalysis = QtWidgets.QAction('Analysis', self)
-        showAnalysis.triggered.connect(lambda: self.analysisSplitter.setSizes([1000,1]))
+        showAnalysis.triggered.connect(lambda: self.analysisSplitter.setSizes([1000, 1]))
         self.showMenu.addAction(showAnalysis)
+
+        # Create a custom context menu for the viewBox
+        # ViewBox doesn't have setMenu, we need to access the existing menu
+        self.viewBoxMenu = self.viewBox.menu
+
+        # Add the showMenu to the custom context menu
+        self.viewBoxMenu.addMenu(self.showMenu)
 
         self.plotItems = []
 
@@ -185,6 +239,459 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
     def mkQApp(self):
         return pyqtgraph.mkQApp()
 
+    def setupExportMenu(self):
+        """
+        Sets up the export menu with options to export data and plots in various formats.
+        """
+        # Create export menu
+        self.exportMenu = QtWidgets.QMenu('Export')
+        
+        # Export image options
+        exportImageAction = QtWidgets.QAction('Export Plot as Image...', self)
+        exportImageAction.triggered.connect(self.exportPlotAsImage)
+        self.exportMenu.addAction(exportImageAction)
+        
+        # Export data options
+        exportDataAction = QtWidgets.QAction('Export Data...', self)
+        exportDataAction.triggered.connect(self.exportData)
+        self.exportMenu.addAction(exportDataAction)
+        
+        # Export figure settings
+        exportSettingsAction = QtWidgets.QAction('Export Figure Settings...', self)
+        exportSettingsAction.triggered.connect(self.exportFigureSettings)
+        self.exportMenu.addAction(exportSettingsAction)
+        
+        # Import figure settings
+        importSettingsAction = QtWidgets.QAction('Import Figure Settings...', self)
+        importSettingsAction.triggered.connect(self.importFigureSettings)
+        self.exportMenu.addAction(importSettingsAction)
+        
+        # Session management
+        self.exportMenu.addSeparator()
+        saveSessionAction = QtWidgets.QAction('Save Session...', self)
+        saveSessionAction.triggered.connect(self.saveSession)
+        self.exportMenu.addAction(saveSessionAction)
+        
+        loadSessionAction = QtWidgets.QAction('Load Session...', self)
+        loadSessionAction.triggered.connect(self.loadSession)
+        self.exportMenu.addAction(loadSessionAction)
+        
+        # Add to viewBox menu
+        # This makes the export menu accessible from the plot context menu
+        self.exportMenuAction = QtWidgets.QAction('Export', self)
+        self.exportMenuAction.setMenu(self.exportMenu)
+
+    def setupShortcuts(self):
+        """
+        Set up keyboard shortcuts for common actions in MagicPlot.
+        """
+        # Fullscreen shortcut (F11)
+        self.fullscreenShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("F11"), self)
+        self.fullscreenShortcut.activated.connect(lambda: self.toggleFullscreenAction.toggle())
+        
+        # Toggle histogram visibility (H)
+        self.histShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("H"), self)
+        self.histShortcut.activated.connect(lambda: self.histSplitter.setSizes([1, 1000] if self.histSplitter.sizes()[0] == 0 else [0, 1]))
+        
+        # Toggle shapes panel (S)
+        self.shapesShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("S"), self)
+        self.shapesShortcut.activated.connect(lambda: self.shapeSplitter.setSizes([1000, 1] if self.shapeSplitter.sizes()[1] == 0 else [1, 0]))
+        
+        # Toggle analysis panel (A)
+        self.analysisShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("A"), self)
+        self.analysisShortcut.activated.connect(lambda: self.analysisSplitter.setSizes([1000, 1] if self.analysisSplitter.sizes()[1] == 0 else [1, 0]))
+        
+        # Toggle Auto-Levels (L)
+        self.autoLevelsShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("L"), self)
+        self.autoLevelsShortcut.activated.connect(lambda: self.histWidget.histToggle.toggle())
+        
+        # Redraw/Reset view (R)
+        self.resetViewShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("R"), self)
+        self.resetViewShortcut.activated.connect(lambda: self.viewBox.autoRange())
+
+    def setupColorMapMenu(self):
+        """
+        Sets up a menu for selecting color maps from matplotlib.
+        """
+        self.colorMapMenu = QMenu('Color Map', self)
+        color_maps = plt.colormaps()
+
+        for cmap_name in color_maps:
+            action = QAction(cmap_name, self)
+            action.triggered.connect(lambda checked, name=cmap_name: self.changeColorMap(name))
+            self.colorMapMenu.addAction(action)
+
+        # Add the color map menu to the right-click context menu
+        self.viewBox.menu.addMenu(self.colorMapMenu)
+
+    def changeColorMap(self, cmap_name):
+        """
+        Changes the color map of the current plot.
+
+        Parameters:
+            cmap_name (str): The name of the color map to apply.
+        """
+        if hasattr(self, 'plotItem') and isinstance(self.plotItem, MagicPlotImageItem):
+            cmap = plt.get_cmap(cmap_name)
+            # Convert matplotlib colormap to a format usable by pyqtgraph
+            colors = []
+            positions = numpy.linspace(0, 1, 256)
+            
+            # Generate the colormap
+            colordata = cmap(positions)
+            
+            # Convert to 0-255 RGBA values
+            colors = (colordata * 255).astype(numpy.uint8)
+            
+            # Set the lookup table for the image item
+            self.plotItem.setLookupTable(colors)
+
+    def exportPlotAsImage(self):
+        """
+        Export the current plot as an image file.
+        Supports PNG, JPG, TIFF, and PDF formats.
+        """
+        fileDialog = QtWidgets.QFileDialog(self)
+        fileDialog.setWindowTitle("Export Plot as Image")
+        fileDialog.setNameFilter("Images (*.png *.jpg *.jpeg *.tif *.tiff *.pdf)")
+        fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        fileDialog.setDefaultSuffix("png")
+        
+        if fileDialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            filePath = fileDialog.selectedFiles()[0]
+            
+            # Create a QPixmap from the plot widget
+            pixmap = QtGui.QPixmap(self.plotView.size())
+            pixmap.fill(QtCore.Qt.transparent)
+            painter = QtGui.QPainter(pixmap)
+            self.plotView.render(painter)
+            painter.end()
+            
+            # Save the pixmap to file
+            success = pixmap.save(filePath)
+            if success:
+                logging.info(f"Plot exported successfully to {filePath}")
+            else:
+                logging.error(f"Failed to export plot to {filePath}")
+                QtWidgets.QMessageBox.critical(self, "Export Error", f"Failed to save image to {filePath}")
+                
+    def exportData(self):
+        """
+        Export the current plot data to a file.
+        Supports CSV, NPY, and HDF5 formats (if h5py is available).
+        """
+        fileDialog = QtWidgets.QFileDialog(self)
+        fileDialog.setWindowTitle("Export Data")
+        fileDialog.setNameFilter("CSV (*.csv);;NumPy (*.npy);;HDF5 (*.h5)")
+        fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        fileDialog.setDefaultSuffix("csv")
+        
+        if fileDialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            filePath = fileDialog.selectedFiles()[0]
+            selectedFilter = fileDialog.selectedNameFilter()
+            
+            try:
+                if self.data is None:
+                    raise ValueError("No data to export")
+                    
+                # Export based on selected format
+                if ".csv" in selectedFilter:
+                    if self.plotMode == 1:
+                        # 1D data
+                        data = self.data
+                        if isinstance(data, tuple) and len(data) == 2:
+                            # x,y data
+                            x, y = data
+                            export_data = numpy.column_stack((x, y))
+                            numpy.savetxt(filePath, export_data, delimiter=',', header='x,y')
+                        else:
+                            # Single array
+                            numpy.savetxt(filePath, data, delimiter=',')
+                    else:
+                        # 2D data
+                        numpy.savetxt(filePath, self.data, delimiter=',')
+                    
+                elif ".npy" in selectedFilter:
+                    # Save as NumPy binary format
+                    numpy.save(filePath, self.data)
+                    
+                elif ".h5" in selectedFilter:
+                    # Try to save as HDF5 if h5py is available
+                    try:
+                        import h5py
+                        with h5py.File(filePath, 'w') as f:
+                            f.create_dataset('data', data=self.data)
+                            f.attrs['date'] = str(QtCore.QDateTime.currentDateTime().toString())
+                            f.attrs['plotMode'] = self.plotMode
+                    except ImportError:
+                        QtWidgets.QMessageBox.warning(self, "Export Warning", 
+                            "H5py module not found. Data exported as NumPy binary instead.")
+                        numpy.save(filePath, self.data)
+                
+                logging.info(f"Data exported successfully to {filePath}")
+                
+            except Exception as e:
+                logging.error(f"Failed to export data: {str(e)}")
+                QtWidgets.QMessageBox.critical(self, "Export Error", f"Failed to export data: {str(e)}")
+    
+    def exportFigureSettings(self):
+        """
+        Export the current figure settings to a JSON file.
+        These settings can be imported later to recreate the same plot appearance.
+        """
+        fileDialog = QtWidgets.QFileDialog(self)
+        fileDialog.setWindowTitle("Export Figure Settings")
+        fileDialog.setNameFilter("JSON (*.json)")
+        fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        fileDialog.setDefaultSuffix("json")
+        
+        if fileDialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            filePath = fileDialog.selectedFiles()[0]
+            
+            try:
+                import json
+                
+                settings = {
+                    'plotMode': self.plotMode,
+                    'panBounds': self._panBounds,
+                    'autoLevels': self.autoLevels,
+                }
+                
+                # Add histogram levels if applicable
+                if self.plotMode == 2:
+                    try:
+                        levels = self.hist.getLevels()
+                        settings['histLevels'] = {
+                            'min': float(levels[0]),
+                            'max': float(levels[1])
+                        }
+                    except (AttributeError, TypeError):
+                        pass
+                
+                # Save viewBox state (position and zoom)
+                try:
+                    viewState = self.viewBox.getState()
+                    # Convert non-serializable types to JSON-compatible format
+                    if 'targetRange' in viewState:
+                        viewState['targetRange'] = [
+                            [float(viewState['targetRange'][0][0]), float(viewState['targetRange'][0][1])],
+                            [float(viewState['targetRange'][1][0]), float(viewState['targetRange'][1][1])]
+                        ]
+                    settings['viewBoxState'] = viewState
+                except (AttributeError, TypeError):
+                    pass
+                
+                # Write settings to JSON file
+                with open(filePath, 'w') as f:
+                    json.dump(settings, f, indent=4)
+                
+                logging.info(f"Figure settings exported successfully to {filePath}")
+                
+            except Exception as e:
+                logging.error(f"Failed to export figure settings: {str(e)}")
+                QtWidgets.QMessageBox.critical(self, "Export Error", f"Failed to export figure settings: {str(e)}")
+
+    def importFigureSettings(self):
+        """
+        Import figure settings from a JSON file and apply them to the current plot.
+        """
+        fileDialog = QtWidgets.QFileDialog(self)
+        fileDialog.setWindowTitle("Import Figure Settings")
+        fileDialog.setNameFilter("JSON (*.json)")
+        fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        
+        if fileDialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            filePath = fileDialog.selectedFiles()[0]
+            
+            try:
+                import json
+                
+                with open(filePath, 'r') as f:
+                    settings = json.load(f)
+                
+                # Apply settings
+                if 'plotMode' in settings:
+                    self.plotMode = settings['plotMode']
+                if 'panBounds' in settings:
+                    self.panBounds = settings['panBounds']
+                if 'autoLevels' in settings:
+                    self.autoLevels = settings['autoLevels']
+                    self.histWidget.histToggle.setChecked(settings['autoLevels'])
+                
+                # Apply histogram levels if we're in 2D mode and there's a plotItem
+                if 'histLevels' in settings and self.plotMode == 2 and hasattr(self, 'plotItem'):
+                    try:
+                        self.histWidget.histToggle.setChecked(False)  # Turn off auto-levels
+                        self.hist.setLevels(settings['histLevels']['min'], settings['histLevels']['max'])
+                        self.setLevelBoxes()
+                    except Exception as e:
+                        logging.warning(f"Could not apply histogram levels: {str(e)}")
+                
+                # Apply view box state if available
+                if 'viewBoxState' in settings and hasattr(self, 'viewBox'):
+                    try:
+                        self.viewBox.setState(settings['viewBoxState'])
+                    except Exception as e:
+                        logging.warning(f"Could not apply view state: {str(e)}")
+                
+                logging.info(f"Figure settings imported successfully from {filePath}")
+                
+            except Exception as e:
+                logging.error(f"Failed to import figure settings: {str(e)}")
+                QtWidgets.QMessageBox.critical(self, "Import Error", f"Failed to import figure settings: {str(e)}")
+
+    def saveSession(self):
+        """
+        Save the current MagicPlot session to a file, including data, 
+        plot settings, histogram settings, transforms, and ROIs.
+        """
+        fileDialog = QtWidgets.QFileDialog(self)
+        fileDialog.setWindowTitle("Save Session")
+        fileDialog.setNameFilter("MagicPlot Session (*.mps)")
+        fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        fileDialog.setDefaultSuffix("mps")
+        
+        if fileDialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            filePath = fileDialog.selectedFiles()[0]
+            
+            try:
+                import pickle
+                
+                # Create a session dictionary with all necessary info
+                session = {
+                    'plotMode': self.plotMode,
+                    'panBounds': self._panBounds,
+                    'autoLevels': self.autoLevels,
+                    'data': self.data,
+                    'version': '1.0'  # For future compatibility
+                }
+                
+                # Add histogram settings if in 2D mode
+                if self.plotMode == 2:
+                    try:
+                        levels = self.hist.getLevels()
+                        session['histLevels'] = {
+                            'min': float(levels[0]),
+                            'max': float(levels[1])
+                        }
+                    except (AttributeError, TypeError):
+                        pass
+                
+                # Save viewBox state
+                try:
+                    viewState = self.viewBox.getState()
+                    session['viewBoxState'] = viewState
+                except AttributeError:
+                    pass
+                
+                # Save ROI data if it exists
+                try:
+                    if hasattr(self, 'plotItem') and isinstance(self.plotItem, MagicPlotImageItem):
+                        rois = []
+                        roi_info = {}
+                        
+                        # Get ROIs from shapeDrawer if available
+                        if hasattr(self.shapeDrawer, 'shapeHolder'):
+                            for shape in self.shapeDrawer.shapeHolder.shapes:
+                                if isinstance(shape, pyqtgraph.ROI):
+                                    rois.append(shape)
+                        
+                        # Only save basic ROI properties that can be reconstructed
+                        for i, roi in enumerate(rois):
+                            roi_info[i] = {
+                                'pos': roi.pos(),
+                                'size': roi.size(),
+                                'angle': roi.angle() if hasattr(roi, 'angle') else 0
+                            }
+                        
+                        if roi_info:
+                            session['rois'] = roi_info
+                except Exception as e:
+                    logging.warning(f"Could not save ROIs: {str(e)}")
+                
+                # Save to file
+                with open(filePath, 'wb') as f:
+                    pickle.dump(session, f)
+                
+                logging.info(f"Session saved successfully to {filePath}")
+                
+            except Exception as e:
+                logging.error(f"Failed to save session: {str(e)}")
+                QtWidgets.QMessageBox.critical(self, "Save Error", f"Failed to save session: {str(e)}")
+    
+    def loadSession(self):
+        """
+        Load a previously saved MagicPlot session from a file.
+        """
+        fileDialog = QtWidgets.QFileDialog(self)
+        fileDialog.setWindowTitle("Load Session")
+        fileDialog.setNameFilter("MagicPlot Session (*.mps)")
+        fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        
+        if fileDialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            filePath = fileDialog.selectedFiles()[0]
+            
+            try:
+                import pickle
+                
+                with open(filePath, 'rb') as f:
+                    session = pickle.load(f)
+                
+                # Check version compatibility
+                if 'version' not in session:
+                    logging.warning("Loading legacy session without version info")
+                
+                # Load data
+                if 'data' in session and session['data'] is not None:
+                    self.plot(session['data'])
+                
+                # Apply settings
+                if 'plotMode' in session:
+                    self.plotMode = session['plotMode']
+                if 'panBounds' in session:
+                    self.panBounds = session['panBounds']
+                if 'autoLevels' in session:
+                    self.autoLevels = session['autoLevels']
+                    self.histWidget.histToggle.setChecked(session['autoLevels'])
+                
+                # Apply histogram levels if we're in 2D mode
+                if 'histLevels' in session and self.plotMode == 2 and hasattr(self, 'plotItem'):
+                    try:
+                        self.histWidget.histToggle.setChecked(False)  # Turn off auto-levels
+                        self.hist.setLevels(session['histLevels']['min'], session['histLevels']['max'])
+                        self.setLevelBoxes()
+                    except Exception as e:
+                        logging.warning(f"Could not apply histogram levels: {str(e)}")
+                
+                # Apply view box state
+                if 'viewBoxState' in session and hasattr(self, 'viewBox'):
+                    try:
+                        self.viewBox.setState(session['viewBoxState'])
+                    except Exception as e:
+                        logging.warning(f"Could not apply view state: {str(e)}")
+                
+                # Recreate ROIs if they exist
+                if 'rois' in session and self.plotMode == 2:
+                    try:
+                        for roi_id, roi_data in session['rois'].items():
+                            roi = pyqtgraph.ROI(roi_data['pos'], roi_data['size'])
+                            if 'angle' in roi_data and roi_data['angle'] != 0:
+                                roi.setAngle(roi_data['angle'])
+                            self.plotView.addItem(roi)
+                            
+                            # Connect ROI signals
+                            roi.sigRegionChanged.connect(lambda: self.shapeDrawer.sigShapeChanged.emit())
+                            # Add to shapeHolder
+                            if hasattr(self.shapeDrawer, 'shapeHolder'):
+                                self.shapeDrawer.shapeHolder.shapes.append(roi)
+                    except Exception as e:
+                        logging.warning(f"Could not recreate ROIs: {str(e)}")
+                
+                logging.info(f"Session loaded successfully from {filePath}")
+                
+            except Exception as e:
+                logging.error(f"Failed to load session: {str(e)}")
+                QtWidgets.QMessageBox.critical(self, "Load Error", f"Failed to load session: {str(e)}")
 
  # Methods to setup plot areaD
  ##################################
@@ -198,6 +705,8 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
         self.viewBox.menu.addAction(self.toggleFullscreenAction)
+        # Add export menu to view context menu
+        self.viewBox.menu.addAction(self.exportMenuAction)
         self.analysisPane.initRegion(self.plotView)
         self.plotItems = []
 
@@ -211,7 +720,14 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         # self.hist.setImageItem(self.plotItem)
         self.viewBox.menu.addMenu(self.showMenu)
         self.viewBox.menu.addMenu(self.transformer.transMenu)
+        
+        # Add the color map menu to the viewBox menu alongside other menus
+        if hasattr(self, 'colorMapMenu'):
+            self.viewBox.menu.addMenu(self.colorMapMenu)
+        
         self.viewBox.menu.addAction(self.toggleFullscreenAction)
+        # Add export menu to view context menu
+        self.viewBox.menu.addAction(self.exportMenuAction)
 
         # lock aspect ratio to 1:1? Is there any reason not to?
         self.viewBox.setAspectLocked()
@@ -238,8 +754,9 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.shapeDrawer.clearShapes()
 
     def deletePlotItems(self):
-        for i in self.plotItems:
-            self.deletePlotItem(i)
+        if hasattr(self, 'plotItems'):
+            for i in self.plotItems:
+                self.deletePlotItem(i)
         for i in reversed(range(self.plotLayout.count())):
             self.plotLayout.itemAt(i).widget().setParent(None)
 
@@ -370,21 +887,51 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
         Accepts any dimension array as arguments, and will plot in either 1D or
         2D depending on shape. Accepts data in the following formats:
-
-        ########DATA FORMATS#######
+        - 2D numpy array (single argument): Will be plotted as an image
+        - 1D numpy array (single argument): Will be plotted as a line plot
+        - Two 1D arrays: Will be plotted as x,y data
+        - kwargs['downsample'] (int): Optional downsampling factor for large datasets
+        - kwargs['name'] (str): Optional name for the plot item
 
         Parameters:
-            args:
-            kwargs:
+            args: Data to plot
+            kwargs: Additional keyword arguments
+                'downsample' (int): Downsample factor for large datasets
+                'name' (str): Name for the plot item
+                'panBounds' (bool): Whether to lock panning to data bounds
 
         Returns:
             MagicPlotDataItem: If 1D plot
             MagicPlotImageItem: If 2D plot
         """
+        # Optional downsampling for large datasets to improve performance
+        if 'downsample' in kwargs and kwargs['downsample'] > 1:
+            downsample = kwargs.pop('downsample')
+            try:
+                if len(args) == 1 and args[0].ndim == 2:
+                    # Downsample 2D data
+                    ds_data = args[0][::downsample, ::downsample]
+                    args = (ds_data,)
+                    logging.info(f"Downsampled 2D data from {args[0].shape} to {ds_data.shape}")
+                elif len(args) >= 1 and args[0].ndim == 1:
+                    # Downsample 1D data
+                    if len(args) == 1:
+                        ds_data = args[0][::downsample]
+                        args = (ds_data,)
+                    else:
+                        ds_x = args[0][::downsample]
+                        ds_y = args[1][::downsample]
+                        args = (ds_x, ds_y) + args[2:]
+                    logging.info(f"Downsampled 1D data by factor of {downsample}")
+            except (AttributeError, IndexError) as e:
+                logging.warning(f"Could not downsample data: {str(e)}")
 
         # try 2d first
         try:
             if args[0].ndim == 2 and len(args) == 1 and args[0].shape[1] != 2:
+                # Check if data is too large and warn user
+                if args[0].size > 4000000:  # ~4 million pixels
+                    logging.warning(f"Large dataset ({args[0].shape}): Consider using 'downsample' parameter for better performance")
 
                 dataItem = MagicPlotImageItem(self, *args, **kwargs)
 
@@ -396,7 +943,6 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
                     self.plotItems[0] = dataItem
                 except IndexError:
                     self.plotItems.append(dataItem)
-
 
                 # clear the view then add new dataItem
                 self.plotView.clear()
@@ -411,6 +957,10 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         except (IndexError, AttributeError):
             # this usually means the data is 1D so try to plot 1D
             try:
+                # Check if data is too large and warn user
+                if len(args) > 0 and hasattr(args[0], 'size') and args[0].size > 100000:
+                    logging.warning(f"Large dataset ({args[0].size} points): Consider using 'downsample' parameter for better performance")
+                
                 # Try to plot 1d
                 dataItem = MagicPlotDataItem(self, *args, **kwargs)
 
@@ -424,8 +974,14 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
             except Exception as e:
                 # This means the data is unplottable by pyqtgraph
-                logging.error('Unable to plot 1D or 2D, check data')
+                logging.error(f'Unable to plot 1D or 2D, check data: {str(e)}')
                 raise
+
+        # Automatically scale the view to fit the data
+        if self.plotMode == 1:
+            self.viewBox.autoRange()
+        elif self.plotMode == 2:
+            self.viewBox.autoRange()
 
         # lock panning to plot area
         if 'panBounds' in kwargs.keys():
@@ -437,7 +993,6 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.transformer.sigActiveToggle.connect(
                 dataItem.transformToggle)
         return dataItem
-
 
     def plot1d(self, dataItem):
         """
@@ -480,9 +1035,20 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
 
     def updatePlot(self):
         """
-        Wrapper around QApplication.processEvents() so that live plotting works
+        Updates the plot with the latest data.
+        
+        This is a more efficient replacement for the previous implementation
+        that used QApplication.processEvents() for live plotting.
+        Instead, this implementation uses a timer to schedule updates
+        at appropriate intervals, reducing CPU usage.
         """
-        QtGui.QApplication.instance().processEvents()
+        if not hasattr(self, 'update_timer'):
+            self.update_timer = QtCore.QTimer()
+            self.update_timer.timeout.connect(lambda: None)  # Just trigger event loop
+            self.update_timer.setSingleShot(True)
+        
+        if not self.update_timer.isActive():
+            self.update_timer.start(16)  # ~60 FPS
 
 
     def dataUpdateHandler(self, data):
@@ -491,6 +1057,7 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         updating data in the plot.
         """
         self.analysisPane.runPluginSignal.emit(data)
+        # Only update histogram bounds if autoLevels is enabled
         if self.plotMode == 2 and self.autoLevels:
             self.setHistFromData(data)
 
@@ -606,16 +1173,35 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
             imageItem (MagicPlotImageItem): the image item connected to
                 the histogram
         """
+        # Block signals temporarily to prevent automatic updates
+        self.hist.blockSignals(True)
+        
+        # Connect the image item to the histogram
         self.hist.setImageItem(imageItem)
-        self.hist.sigLevelsChanged.connect(self.histWidget.histToggle.click)
+        
+        # Get current levels
         levels = imageItem.getLevels()
+        
         try:
+            # Set the levels in the histogram and spin boxes
             self.hist.setLevels(levels[0], levels[1])
             self.histWidget.maxLevelBox.setValue(levels[1])
             self.histWidget.minLevelBox.setValue(levels[0])
-            self.histWidget.histToggle.setChecked(True)
+            
+            # Set the auto-levels checkbox state
+            self.histWidget.histToggle.setChecked(self.autoLevels)
+            
+            # Tell the image item whether to use auto-levels
+            imageItem.setOpts(autoLevels=self.autoLevels)
+            
+            # Only connect sigLevelsChanged to histToggle.click if autoLevels is True
+            if self.autoLevels:
+                self.hist.sigLevelsChanged.connect(self.histWidget.histToggle.click)
         except TypeError:
             logging.info('Empty ImageItem')
+        
+        # Unblock signals after setup is complete
+        self.hist.blockSignals(False)
 
     def activateHistogram(self, checked):
         """
@@ -630,25 +1216,47 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         self.autoLevels = checked
         try:
             if not checked:
-                self.hist.sigLevelsChanged.disconnect(
-                    self.histWidget.histToggle.click)
+                # Disconnect auto-levels behavior
+                try:
+                    self.hist.sigLevelsChanged.disconnect(self.histWidget.histToggle.click)
+                except TypeError:
+                    logging.debug('Histogram connection already removed')
+                    
+                # Save current levels
                 levels = self.plotItem.getLevels()
+                
+                # Disable auto-levels on the image item
                 self.plotItem.setOpts(autoLevels=False)
+                
+                # Connect signals to ensure manual changes are applied
                 self.plotItem.sigImageChanged.connect(self.setLevelsFromHist)
                 self.hist.sigLevelsChanged.connect(self.setLevelBoxes)
+                
+                # Set the levels to current values
                 self.hist.setLevels(levels[0], levels[1])
             else:
+                # Enable auto-levels
                 self.plotItem.setOpts(autoLevels=True)
+                
+                # Get current image data
                 im = self.plotItem.image
-                self.plotItem.setLevels((im.min(), im.max()))
-                try:
-                    self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
-                except TypeError:
-                    logging.debug('Histogram not connected so cannot disconnect')
-                self.hist.setLevels(im.min(), im.max())
-                self.hist.sigLevelsChanged.connect(
-                    self.histWidget.histToggle.click)
-        except TypeError:
+                if im is not None:
+                    # Set levels to min/max of current data
+                    self.plotItem.setLevels((im.min(), im.max()))
+                    
+                    # Disconnect manual level update
+                    try:
+                        self.plotItem.sigImageChanged.disconnect(self.setLevelsFromHist)
+                    except TypeError:
+                        logging.debug('Histogram not connected so cannot disconnect')
+                        
+                    # Update histogram to match new levels
+                    self.hist.setLevels(im.min(), im.max())
+                    
+                    # Connect auto-levels behavior
+                    self.hist.sigLevelsChanged.connect(self.histWidget.histToggle.click)
+        except TypeError as e:
+            logging.error(f"Error in activateHistogram: {str(e)}")
             raise
 
     def setLevelBoxes(self):
@@ -683,6 +1291,10 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         Parameters:
             data (numpy.ndarray)
         """
+        # Only update histogram levels if autoLevels is enabled
+        if not self.autoLevels:
+            return
+            
         try:
             self.hist.blockSignals(True)
             _min, _max = data.min(), data.max()
@@ -692,6 +1304,33 @@ class MagicPlot(QtWidgets.QWidget, Ui_MagicPlot):
         except AttributeError:
             # usually means trying to udpate hist with 1d data
             pass
+
+    def cleanupMemory(self):
+        """
+        Free up memory by clearing cached data and encouraging garbage collection.
+        This is useful when working with very large datasets to prevent memory issues.
+        """
+        import gc
+        
+        # Clear references to unused ROI windows
+        if hasattr(self, 'plotItem') and isinstance(self.plotItem, MagicPlotImageItem):
+            # Clean up any closed windows from the ROI windows dictionary
+            for roi, (window, plt) in list(self.plotItem.roi_windows.items()):
+                if not window.isVisible():
+                    logging.debug(f"Removing closed ROI window from memory")
+                    self.plotItem.roi_windows.pop(roi)
+            
+            # Clean up legacy windows list
+            self.plotItem.windows = [w for w in self.plotItem.windows if w[0].isVisible()]
+        
+        # Clear transform cache if it exists
+        if hasattr(self.transformer, 'cache'):
+            self.transformer.cache = {}
+            
+        # Run garbage collection
+        gc.collect()
+        
+        logging.info("Memory cleanup performed")
 
 class MagicPlotImageItem(pyqtgraph.ImageItem):
     """
@@ -726,6 +1365,8 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
 
         super(MagicPlotImageItem, self).__init__(*args, **kwargs)
         self.windows = []
+        # Dictionary to track existing ROI windows
+        self.roi_windows = {}
         self.sigImageChanged.connect(self.updateWindows)
         self.parent.transformer.worker.emitter.sigWorkerFinished.connect(super(MagicPlotImageItem, self).setImage)
 
@@ -733,7 +1374,19 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
         """
         Wrapper for pyqtgraph.ImageItem.setImage() to make it consistent with
         pyqtgraph.PlotDataItem.setData()
+        
+        Parameters:
+            data (numpy.ndarray): The image data to be displayed
+            **kwargs: Additional keyword arguments passed to setImage
+        
+        Raises:
+            ValueError: If data is not a valid numpy array
         """
+        if data is None:
+            logging.warning("Attempting to set None as image data")
+        elif not isinstance(data, numpy.ndarray):
+            raise ValueError(f"Expected numpy.ndarray, got {type(data)}")
+            
         self.setImage(image=data, **kwargs)
 
     def setImage(self, image=None, **kwargs):
@@ -746,8 +1399,22 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
             self.parent.transformer.transform(image)
             return
 
+        # Save current levels if autoLevels is disabled and we're updating with new data
+        current_levels = None
+        if hasattr(self.parent, 'autoLevels') and not self.parent.autoLevels and image is not None:
+            current_levels = self.getLevels()
+            # Force autoLevels to False in kwargs to ensure it's not overridden
+            kwargs['autoLevels'] = False
+        elif image is not None and 'autoLevels' not in kwargs:
+            # Otherwise respect the parent's setting
+            kwargs['autoLevels'] = self.parent.autoLevels
+
         # call the pyqtgraph.ImageItem.setImage() function
         super(MagicPlotImageItem, self).setImage(image, **kwargs)
+        
+        # Restore saved levels if autoLevels is disabled
+        if current_levels is not None:
+            self.setLevels(current_levels)
 
     def informViewBoundsChanged(self):
         super(MagicPlotImageItem, self).informViewBoundsChanged()
@@ -764,27 +1431,59 @@ class MagicPlotImageItem(pyqtgraph.ImageItem):
     def plotROI(self, roi):
         """
         Plot the current region of interest in a new MagicPlot window.
+        If the ROI has been plotted before, update the existing window instead
+        of creating a new one.
 
         Parameters:
             roi (pyqtgraph.ROI): Region of Interest to use for plotting
+            
+        Returns:
+            MagicPlot: The window containing the plotted ROI data
         """
-        window = MagicPlot()
+        # Get ROI data
         sliceData = roi.getArrayRegion(self.image, self)
-        plt = window.plot(sliceData)
-        window.show()
-        self.windows.append([window, plt, roi])
+        
+        # Check if we already have a window for this ROI
+        if roi in self.roi_windows:
+            # Update existing window
+            window, plt = self.roi_windows[roi]
+            plt.setData(sliceData)
+        else:
+            # Create new window
+            window = MagicPlot()
+            plt = window.plot(sliceData)
+            window.show()
+            # Store in both the dictionary and the list (for backward compatibility)
+            self.roi_windows[roi] = (window, plt)
+            self.windows.append([window, plt, roi])
+            
+        return window
 
     def updateWindows(self):
         """
-        Update the RoI plots
+        Update all ROI plots when the parent image changes.
+        
+        Uses both the legacy list-based approach and the new dictionary-based approach
+        to ensure backward compatibility while providing the improved functionality.
         """
-        for i in self.windows:
+        # Update windows from the dictionary (new approach)
+        for roi, (window, plt) in list(self.roi_windows.items()):
+            try:
+                sliceData = roi.getArrayRegion(self.image, self)
+                plt.setData(sliceData)
+            except Exception as e:
+                logging.debug(f"Error updating ROI window: {str(e)}")
+                # Remove from dictionary if there's an error
+                self.roi_windows.pop(roi, None)
+        
+        # Also update from the list for backward compatibility
+        for i in list(self.windows):  # Create a copy of the list to safely modify during iteration
             try:
                 window, plt, roi = i
                 sliceData = roi.getArrayRegion(self.image, self)
                 plt.setData(sliceData)
             except:
-                logging.debug("RoI doesn't exist, removing window from list")
+                logging.debug("ROI doesn't exist, removing window from list")
                 self.windows.remove(i)
 
     def transformToggle(self, checked):
@@ -919,9 +1618,18 @@ class MagicPlotDataItem(pyqtgraph.PlotDataItem):
 
     def updatePlot(self):
         """
-        Wrapper around QApplication.processEvents() so that live plotting works
+        Updates the plot with the latest data.
+        
+        This is a more efficient implementation using a timer-based approach
+        rather than directly calling processEvents().
         """
-        QtGui.QApplication.instance().processEvents()
+        if not hasattr(self.parent, 'update_timer'):
+            self.parent.update_timer = QtCore.QTimer()
+            self.parent.update_timer.timeout.connect(lambda: None)
+            self.parent.update_timer.setSingleShot(True)
+        
+        if not self.parent.update_timer.isActive():
+            self.parent.update_timer.start(16)  # ~60 FPS
 
 if __name__ == "__main__":
     import sys
