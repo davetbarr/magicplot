@@ -22,6 +22,8 @@ dynamic = ["version"]
 
 [tool.setuptools_scm]
 write_to = "magicplot/_version.py"
+version_scheme = "post-release"
+local_scheme = "no-local-version"
 
 [project.urls]
 Homepage = "https://github.com/ojdf/magicplot"
